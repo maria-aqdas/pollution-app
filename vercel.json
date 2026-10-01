@@ -1,0 +1,3 @@
+{
+  "functions": { "api/city.js": { "maxDuration": 30 } }
+}
