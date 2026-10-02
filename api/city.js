@@ -1,8 +1,43 @@
-// Vercel serverless function: /api/city?city=Lahore
+// Vercel serverless function
+//  /api/city?city=Lahore            -> overview (scores + 5 bullet points per type)
+//  /api/city?city=Lahore&type=air   -> full details (causes, harm, 5-year outlook, steps)
 // Needs env var GEMINI_API_KEY (from Google AI Studio)
+const TYPES = ['air', 'water', 'thermal', 'land', 'noise', 'light', 'radioactive'];
+
+async function ask(prompt) {
+  const models = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'].filter(Boolean);
+  const started = Date.now();
+  let lastErr = '';
+  for (const m of models) {
+    for (let a = 0; a < 2; a++) {
+      if (Date.now() - started > 45000) throw new Error('The AI is busy right now. Please try again in a minute. (' + lastErr + ')');
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.4 }
+          })
+        }
+      );
+      const d = await r.json();
+      const t = d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts[0].text;
+      if (t) { try { return JSON.parse(t); } catch (e) { lastErr = 'bad JSON'; continue; } }
+      lastErr = (d.error && d.error.message) || 'AI gave no answer';
+      const code = d.error && d.error.code;
+      if (code && ![429, 500, 503, 504].includes(code)) break;
+      await new Promise(s => setTimeout(s, 1200));
+    }
+  }
+  throw new Error('The AI is busy right now. Please try again in a minute. (' + lastErr + ')');
+}
+
 module.exports = async (req, res) => {
   try {
     const city = (req.query.city || '').trim();
+    const type = (req.query.type || '').trim();
     if (!city) return res.status(400).json({ error: 'City required' });
 
     const g = await (await fetch(
@@ -22,43 +57,24 @@ module.exports = async (req, res) => {
       temp: wx.current && wx.current.temperature_2m
     };
 
-    const item = '{"score":0,"level":{"en":"","ur":""},"summary":{"en":"","ur":""},"causes":{"en":"","ur":""},"harm":{"en":"","ur":""},"forecast":[0,0,0,0,0],"tip":{"en":"","ur":""}}';
-    const prompt =
-`City: ${p.name}, ${p.country}. Live data: US AQI ${live.aqi}, PM2.5 ${live.pm25}, PM10 ${live.pm10}, temperature ${live.temp}C.
-Return ONLY JSON in this shape: {"overall":{"score":0,"verdict":{"en":"","ur":""}},"items":{"air":${item},"water":${item},"thermal":${item},"land":${item},"noise":${item},"light":${item},"radioactive":${item}}}
-Rules: score is 0 (clean) to 100 (very polluted). Air score = min(100, round(AQI/3)). "forecast" = predicted score for each of the next 5 years. "level" is one or two words (Low, Moderate, High...). Every text is 1-2 very simple sentences a layperson understands. "ur" fields must be in Urdu script. Be honest that water, land, noise, light and radiation are estimates.`;
+    const ctx = `City: ${p.name}, ${p.country}. Live data: US AQI ${live.aqi}, PM2.5 ${live.pm25}, PM10 ${live.pm10}, temperature ${live.temp}C.`;
+    const rules = `Use super simple words that a 10-year-old and a village elder can both understand. Short sentences. No technical words; if you must use one, explain it in brackets. "ur" text must be in very simple Urdu script. Score is 0 (clean) to 100 (very polluted).`;
+    let ai;
 
-    // Try several models, retry on "busy" errors, so one overloaded model never breaks the app
-    const models = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'].filter(Boolean);
-    const started = Date.now();
-    let txt = '', lastErr = '';
-    outer: for (const m of models) {
-      for (let a = 0; a < 2; a++) {
-        if (Date.now() - started > 45000) break outer;
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.4 }
-            })
-          }
-        );
-        const d = await r.json();
-        const t = d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts[0].text;
-        if (t) { txt = t; break outer; }
-        lastErr = (d.error && d.error.message) || 'AI gave no answer';
-        const code = d.error && d.error.code;
-        if (code && ![429, 500, 503, 504].includes(code)) break; // wrong model/key: go to next model
-        await new Promise(s => setTimeout(s, 1200)); // busy: wait, retry once
-      }
+    if (TYPES.includes(type)) {
+      const list = (n) => `{"en":[${n} strings],"ur":[${n} strings]}`;
+      ai = await ask(`${ctx}\nTopic: ${type} pollution in this city.
+Return ONLY JSON: {"causes":${list('5 or more')},"harm":${list('5 or more')},"outlook":{"en":[5 strings, one for each of the next 5 years, saying what will likely happen],"ur":[5 strings]},"steps":${list('6 or more')}}
+"causes" = why this pollution happens here. "harm" = how it hurts people, animals and nature. "steps" = practical ways to improve it, some for ordinary people and some for the government. ${rules}`);
+    } else {
+      const item = '{"score":0,"level":{"en":"","ur":""},"points":{"en":["","","","",""],"ur":["","","","",""]},"forecast":[0,0,0,0,0]}';
+      ai = await ask(`${ctx}
+Return ONLY JSON: {"overall":{"score":0,"verdict":{"en":"","ur":""}},"items":{${TYPES.map(k => `"${k}":${item}`).join(',')}}}
+Rules: Air score = min(100, round(AQI/3)). "forecast" = predicted score for each of the next 5 years. "level" is one or two words. "points" = exactly 5 short bullet points for that pollution in this city: what it is, how bad it is here, who is hurt most, how it affects daily life, and one quick tip. For water, land, noise, light and radiation, say in one bullet that it is an estimate. "verdict" is one simple sentence. ${rules}`);
     }
-    if (!txt) throw new Error('The AI is busy right now. Please try again in a minute. (' + lastErr + ')');
-    // Cache each city for 1 hour: faster, and far fewer AI calls
+
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    res.status(200).json({ city: p.name, country: p.country, live, ai: JSON.parse(txt) });
+    res.status(200).json({ city: p.name, country: p.country, live, ai });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
