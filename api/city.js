@@ -29,13 +29,13 @@ Return ONLY JSON in this shape: {"overall":{"score":0,"verdict":{"en":"","ur":""
 Rules: score is 0 (clean) to 100 (very polluted). Air score = min(100, round(AQI/3)). "forecast" = predicted score for each of the next 5 years. "level" is one or two words (Low, Moderate, High...). Every text is 1-2 very simple sentences a layperson understands. "ur" fields must be in Urdu script. Be honest that water, land, noise, light and radiation are estimates.`;
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-3.8-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.4, thinkingConfig: { thinkingBudget: 0 } }
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.4 }
         })
       }
     );
