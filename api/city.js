@@ -46,10 +46,15 @@ module.exports = async (req, res) => {
     const p = g.results && g.results[0];
     if (!p) return res.status(404).json({ error: 'City not found' });
 
-    const [aq, wx] = await Promise.all([
+    const [aq, wx, hs] = await Promise.all([
       fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10`).then(r => r.json()),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`).then(r => r.json())
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`).then(r => r.json()),
+      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=1`).then(r => r.json()).catch(() => ({}))
     ]);
+    // daily average AQI for the last 7 days + today
+    const hr = hs.hourly || {}, days = {};
+    (hr.time || []).forEach((tm, i) => { const v = hr.us_aqi[i]; if (v == null) return; (days[tm.slice(0, 10)] = days[tm.slice(0, 10)] || []).push(v); });
+    const history = Object.keys(days).sort().map(d => ({ d, v: Math.round(days[d].reduce((a, b) => a + b, 0) / days[d].length) }));
     const live = {
       aqi: aq.current && aq.current.us_aqi,
       pm25: aq.current && aq.current.pm2_5,
@@ -74,7 +79,7 @@ Rules: Air score = min(100, round(AQI/3)). "forecast" = predicted score for each
     }
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    res.status(200).json({ city: p.name, country: p.country, live, ai });
+    res.status(200).json({ city: p.name, country: p.country, live, history, ai });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
