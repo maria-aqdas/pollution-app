@@ -47,6 +47,18 @@ input{flex:1;min-width:200px;padding:15px 18px;border-radius:12px;border:1px sol
 .fc{display:flex;gap:10px;align-items:flex-end;height:120px;margin-top:10px}
 .fc div{flex:1;text-align:center;font-size:12px;color:var(--mut)}.fc i{display:block;border-radius:6px 6px 0 0;margin-bottom:4px}
 footer{color:var(--mut);font-size:13px;padding:40px 0}
+html{scroll-behavior:smooth}
+.links a{color:var(--mut);text-decoration:none;margin-inline-end:18px;font-size:14px}.links a:hover{color:var(--ac)}
+@media(max-width:760px){.links{display:none}}
+section{margin-top:80px}
+.sh{font-size:clamp(26px,4vw,40px);margin:0 0 6px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:60px}
+.stat{flex:1;min-width:130px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;color:var(--mut)}
+.stat b{display:block;font-size:32px;color:var(--ac)}
+.card.lc{cursor:default}
+.card.lc:hover{border-color:var(--ac)}
+details{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin:10px 0}
+summary{cursor:pointer;font-weight:600}
 </style>
 </head>
 <body>
@@ -54,6 +66,7 @@ footer{color:var(--mut);font-size:13px;padding:40px 0}
 <div class="wrap">
   <nav>
     <div class="logo">City<b>Air</b></div>
+    <div class="links"></div>
     <div class="tools"><button id="lg">اردو</button><button id="th">Light</button></div>
   </nav>
   <div class="tag" data-t="tag"></div>
@@ -62,6 +75,7 @@ footer{color:var(--mut);font-size:13px;padding:40px 0}
   <form id="f"><input id="q" data-p="ph" autocomplete="off"><button class="go" data-t="btn"></button></form>
   <div id="status"></div>
   <div id="out"></div>
+  <div id="more"></div>
   <footer data-t="foot"></footer>
 </div>
 <script>
@@ -75,6 +89,43 @@ let lang='en',data=null,sel='all';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const col=s=>s<25?'#3fb97a':s<50?'#e8c23a':s<75?'#f08a3c':'#e5484d';
+const C={
+en:{nv:['Check city','Why it matters','How it works','FAQ'],ls:'What every person should know about each type of pollution',
+st:[['7','Pollution types'],['Live','Air data'],['2','Languages'],['Free','To use']],
+l:{air:'Dirty air carries tiny particles (PM2.5) deep into your lungs and blood. It causes asthma, heart disease and shorter life, and children and the elderly suffer most.',
+water:'Unsafe water spreads diarrhea, typhoid and cholera, and poisons crops and fish. Water pollution is often invisible and has no smell.',
+thermal:'Heat from cities, factories and power plants warms air and water. It causes heatstroke, higher power bills and kills river life.',
+land:'Waste, chemicals and plastic in soil poison the food we grow and the groundwater below. Polluted land stays harmful for years.',
+noise:'Constant loud noise raises stress and blood pressure, ruins sleep and can damage hearing and children\'s learning.',
+light:'Too much night lighting disrupts sleep, confuses birds and insects, and hides the stars.',
+radioactive:'Radiation from waste or accidents can cause cancer and damage DNA. Normal city levels are low, but safe storage of waste matters.'},
+h:[['Type a city','Enter any city in the world.'],['We fetch live data','Air quality and temperature come live from Open-Meteo.'],['AI explains it','Gemini estimates the rest and explains it in simple words, in English or Urdu.']],
+f:[['Is the data real?','Air quality and temperature are live. Water, land, noise, light and radiation are AI estimates, so treat them as a guide, not an official measurement.'],
+['What does the score mean?','0 is very clean and 100 is very polluted. Green is safe, yellow is moderate, orange is unhealthy and red is dangerous.'],
+['How is the 5-year forecast made?','The AI projects each score from current conditions and general trends. It is an informed guess, not a promise.'],
+['What can I do?','Wear a mask on bad air days, save electricity and water, never burn waste, plant trees and report pollution to the local authorities.']]},
+ur:{nv:['شہر چیک کریں','یہ کیوں اہم ہے','یہ کیسے کام کرتا ہے','سوالات'],ls:'ہر قسم کی آلودگی کے بارے میں ہر شخص کو کیا جاننا چاہیے',
+st:[['7','آلودگی کی اقسام'],['لائیو','ہوا کا ڈیٹا'],['2','زبانیں'],['مفت','استعمال کے لیے']],
+l:{air:'آلودہ ہوا کے باریک ذرات (PM2.5) پھیپھڑوں اور خون تک پہنچ جاتے ہیں۔ اس سے دمہ، دل کی بیماری اور عمر میں کمی ہوتی ہے، اور بچے اور بزرگ سب سے زیادہ متاثر ہوتے ہیں۔',
+water:'ناصاف پانی سے اسہال، ٹائیفائیڈ اور ہیضہ پھیلتا ہے اور فصلیں اور مچھلیاں بھی زہریلی ہو جاتی ہیں۔ پانی کی آلودگی اکثر نظر نہیں آتی۔',
+thermal:'شہروں، فیکٹریوں اور بجلی گھروں کی گرمی ہوا اور پانی کو گرم کرتی ہے۔ اس سے لو لگتی ہے، بجلی کا بل بڑھتا ہے اور دریاؤں کی زندگی مرتی ہے۔',
+land:'مٹی میں کچرا، کیمیکل اور پلاسٹک ہماری خوراک اور زیرِ زمین پانی کو زہریلا کر دیتے ہیں۔ آلودہ زمین سالوں تک نقصان دہ رہتی ہے۔',
+noise:'مسلسل تیز شور سے ذہنی دباؤ اور بلڈ پریشر بڑھتا ہے، نیند خراب ہوتی ہے اور سماعت اور بچوں کی پڑھائی متاثر ہوتی ہے۔',
+light:'رات کی ضرورت سے زیادہ روشنی نیند خراب کرتی ہے، پرندوں اور کیڑوں کو الجھاتی ہے اور ستارے چھپا دیتی ہے۔',
+radioactive:'کچرے یا حادثات سے نکلنے والی تابکاری کینسر اور ڈی این اے کو نقصان پہنچا سکتی ہے۔ عام شہروں میں سطح کم ہوتی ہے، مگر ایسے کچرے کا محفوظ ذخیرہ ضروری ہے۔'},
+h:[['شہر لکھیں','دنیا کا کوئی بھی شہر لکھیں۔'],['لائیو ڈیٹا','ہوا کا معیار اور درجہ حرارت Open-Meteo سے لائیو آتا ہے۔'],['AI آسان الفاظ میں سمجھاتا ہے','باقی اندازے Gemini لگاتا ہے اور آسان اردو یا انگریزی میں بتاتا ہے۔']],
+f:[['کیا ڈیٹا اصلی ہے؟','ہوا کا معیار اور درجہ حرارت لائیو ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، اس لیے انہیں رہنمائی سمجھیں، سرکاری پیمائش نہیں۔'],
+['اسکور کا کیا مطلب ہے؟','0 بہت صاف اور 100 بہت آلودہ ہے۔ سبز محفوظ، پیلا درمیانہ، نارنجی غیر صحت بخش اور سرخ خطرناک ہے۔'],
+['5 سالہ اندازہ کیسے بنتا ہے؟','AI موجودہ حالات اور عمومی رجحانات سے ہر اسکور کا اندازہ لگاتا ہے۔ یہ سمجھدار اندازہ ہے، وعدہ نہیں۔'],
+['میں کیا کر سکتا ہوں؟','خراب ہوا والے دن ماسک پہنیں، بجلی اور پانی بچائیں، کچرا نہ جلائیں، درخت لگائیں اور آلودگی کی شکایت متعلقہ ادارے کو کریں۔']]}};
+function more(){
+  const c=C[lang],n=T[lang].n,E={air:'🌫️',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
+  $('.links').innerHTML=['f','learn','how','faq'].map((h,i)=>`<a href="#${h}">${c.nv[i]}</a>`).join('');
+  $('#more').innerHTML=`<div class="stats">${c.st.map(s=>`<div class="stat"><b>${s[0]}</b>${s[1]}</div>`).join('')}</div>
+  <section id="learn"><h2 class="sh">${c.nv[1]}</h2><p class="sub">${c.ls}</p><div class="grid" style="margin-top:20px">${K.map(k=>`<div class="card lc"><h3>${E[k]} ${n[k]}</h3><p>${c.l[k]}</p></div>`).join('')}</div></section>
+  <section id="how"><h2 class="sh">${c.nv[2]}</h2><div class="grid">${c.h.map((s,i)=>`<div class="card lc"><span style="font-size:34px;font-weight:800;color:var(--ac)">${i+1}</span><h3>${s[0]}</h3><p>${s[1]}</p></div>`).join('')}</div></section>
+  <section id="faq"><h2 class="sh">${c.nv[3]}</h2>${c.f.map(q=>`<details><summary>${q[0]}</summary><p style="color:var(--mut)">${q[1]}</p></details>`).join('')}</section>`;
+}
 function ui(){
   const t=T[lang];
   document.documentElement.lang=lang;document.documentElement.dir=lang=='ur'?'rtl':'ltr';
@@ -83,6 +134,7 @@ function ui(){
   $('#lg').textContent=lang=='en'?'اردو':'English';
   const dk=document.documentElement.dataset.theme=='dark';
   $('#th').textContent=dk?t.light:t.dark;
+  more();
   render();
 }
 function render(){
