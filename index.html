@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
-<head>             
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CityAir - Pollution Checker</title>
@@ -60,7 +60,16 @@ section{margin-top:80px}
 details{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin:10px 0}
 summary{cursor:pointer;font-weight:600}
 .card ul{margin:10px 0;padding-inline-start:22px}.card li{margin:8px 0;line-height:1.5}
+.adv{display:grid;gap:10px;margin:18px 0}
+.al{padding:14px 18px;border-radius:12px;border:1px solid var(--bd);border-inline-start:6px solid;background:var(--card)}
+.al.r{border-inline-start-color:#e5484d}.al.o{border-inline-start-color:#f08a3c}.al.y{border-inline-start-color:#e8c23a}.al.g{border-inline-start-color:#3fb97a}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+.cv{position:relative;height:300px}
+@media print{.bg,nav,form,#tags,.chips,#more,footer,button,.links{display:none!important}
+html[data-theme]{--fg:#000;--mut:#333;--card:#fff;--bd:#bbb;--bg:#fff}
+.card,.al,.top{break-inside:avoid}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="bg"></div>
@@ -73,7 +82,8 @@ summary{cursor:pointer;font-weight:600}
   <div class="tag" data-t="tag"></div>
   <h1 id="h1"></h1>
   <p class="sub" data-t="sub"></p>
-  <form id="f"><input id="q" data-p="ph" autocomplete="off"><button class="go" data-t="btn"></button></form>
+  <form id="f"><input id="q" autocomplete="off"><input id="q2" autocomplete="off"><button class="go" data-t="btn"></button><button type="button" class="chip" id="loc"></button></form>
+  <div class="chips" id="tags"></div>
   <div id="status"></div>
   <div id="out"></div>
   <div id="more"></div>
@@ -81,12 +91,16 @@ summary{cursor:pointer;font-weight:600}
 </div>
 <script>
 const T={
-en:{tag:'Free pollution checker for any city',h1:'How clean is your <span>city</span>?',sub:'Type any city to see air, water, heat, land, noise, light and radioactive pollution, what harm it does, and a 5-year outlook, in simple words.',btn:'Check city',ph:'Enter a city, e.g. Lahore',load:'Checking... this takes a few seconds',all:'All',overall:'Overall pollution',causes:'Why it happens',harm:'Why it is harmful',fc:'Next 5 years (higher = worse)',tip:'What you can do',live:'Live data',est:'AI estimate',aqi:'Air quality index',temp:'Temperature',foot:'Air and temperature are live data. Water, land, noise, light and radiation are AI estimates, not official measurements.',light:'Light',dark:'Dark',tap:'Tap a card for details',out:'What may happen in the next 5 years',steps:'Steps to improve it',ld:'Loading details...',
+en:{tag:'Free pollution checker for any city',h1:'How clean is your <span>city</span>?',sub:'Type any city to see air, water, heat, land, noise, light and radioactive pollution, what harm it does, and a 5-year outlook, in simple words.',btn:'Check city',ph:'Enter a city, e.g. Lahore',load:'Checking... this takes a few seconds',all:'All',overall:'Overall pollution',causes:'Why it happens',harm:'Why it is harmful',fc:'Next 5 years (higher = worse)',tip:'What you can do',live:'Live data',est:'AI estimate',aqi:'Air quality index',temp:'Temperature',foot:'Air and temperature are live data. Water, land, noise, light and radiation are AI estimates, not official measurements.',light:'Light',dark:'Dark',tap:'Tap a card for details',out:'What may happen in the next 5 years',steps:'Steps to improve it',ld:'Loading details...',ph2:'Compare with (optional)',loc:'📍 Use my location',rad:'All 7 pollutions at a glance',hist:'Air quality: last 7 days',dl:'Download report (PDF)',cleaner:'is cleaner overall',up:'Going up: getting worse',dn:'Going down: getting better',fl:'Staying about the same',
+hn:(p,d)=>d>5?`Today's air is ${p}% worse than the average of the last 6 days.`:d<-5?`Today's air is ${p}% better than the average of the last 6 days.`:`Today's air is about the same as the last 6 days.`,
+adv:{noout:'🚫 Not safe outside today for children, old people and sick people. Please stay indoors.',mask:'😷 Wear a mask today if you go outside.',water:'💧 Boil the water before you drink it.',heat:'🥵 Very hot today. Drink more water and avoid the midday sun.',noise:'🔊 Very noisy. Protect your ears and your sleep.',ok:'✅ Things look fine today. Enjoy the outdoors.'},
 n:{air:'Air',water:'Water',thermal:'Thermal',land:'Land',noise:'Noise',light:'Light',radioactive:'Radioactive'}},
-ur:{tag:'کسی بھی شہر کی آلودگی چیک کریں',h1:'آپ کا <span>شہر</span> کتنا صاف ہے؟',sub:'کسی بھی شہر کا نام لکھیں اور ہوا، پانی، حرارت، زمین، شور، روشنی اور تابکاری کی آلودگی، اس کے نقصانات اور اگلے 5 سال کا اندازہ آسان الفاظ میں دیکھیں۔',btn:'شہر چیک کریں',ph:'شہر کا نام لکھیں، مثلاً لاہور',load:'چیک ہو رہا ہے... چند سیکنڈ لگیں گے',all:'سب',overall:'مجموعی آلودگی',causes:'یہ کیوں ہوتی ہے',harm:'نقصانات',fc:'اگلے 5 سال (زیادہ = بدتر)',tip:'آپ کیا کر سکتے ہیں',live:'لائیو ڈیٹا',est:'AI اندازہ',aqi:'ہوا کا معیار',temp:'درجہ حرارت',foot:'ہوا اور درجہ حرارت لائیو ڈیٹا ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، سرکاری پیمائش نہیں۔',light:'لائٹ',dark:'ڈارک',tap:'تفصیل کے لیے کارڈ دبائیں',out:'اگلے 5 سال میں کیا ہو سکتا ہے',steps:'بہتری کے اقدامات',ld:'تفصیل لوڈ ہو رہی ہے...',
+ur:{tag:'کسی بھی شہر کی آلودگی چیک کریں',h1:'آپ کا <span>شہر</span> کتنا صاف ہے؟',sub:'کسی بھی شہر کا نام لکھیں اور ہوا، پانی، حرارت، زمین، شور، روشنی اور تابکاری کی آلودگی، اس کے نقصانات اور اگلے 5 سال کا اندازہ آسان الفاظ میں دیکھیں۔',btn:'شہر چیک کریں',ph:'شہر کا نام لکھیں، مثلاً لاہور',load:'چیک ہو رہا ہے... چند سیکنڈ لگیں گے',all:'سب',overall:'مجموعی آلودگی',causes:'یہ کیوں ہوتی ہے',harm:'نقصانات',fc:'اگلے 5 سال (زیادہ = بدتر)',tip:'آپ کیا کر سکتے ہیں',live:'لائیو ڈیٹا',est:'AI اندازہ',aqi:'ہوا کا معیار',temp:'درجہ حرارت',foot:'ہوا اور درجہ حرارت لائیو ڈیٹا ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، سرکاری پیمائش نہیں۔',light:'لائٹ',dark:'ڈارک',tap:'تفصیل کے لیے کارڈ دبائیں',out:'اگلے 5 سال میں کیا ہو سکتا ہے',steps:'بہتری کے اقدامات',ld:'تفصیل لوڈ ہو رہی ہے...',ph2:'موازنے کے لیے شہر (اختیاری)',loc:'📍 میرا مقام',rad:'ساتوں آلودگیاں ایک نظر میں',hist:'ہوا کا معیار: پچھلے 7 دن',dl:'رپورٹ ڈاؤن لوڈ کریں (PDF)',cleaner:'مجموعی طور پر زیادہ صاف ہے',up:'بڑھ رہی ہے: حالات خراب ہو رہے ہیں',dn:'کم ہو رہی ہے: حالات بہتر ہو رہے ہیں',fl:'تقریباً ویسی ہی رہے گی',
+hn:(p,d)=>d>5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% زیادہ خراب ہے۔`:d<-5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% بہتر ہے۔`:`آج کی ہوا پچھلے 6 دن جیسی ہی ہے۔`,
+adv:{noout:'🚫 آج بچوں، بزرگوں اور بیمار لوگوں کے لیے باہر جانا محفوظ نہیں۔ گھر کے اندر رہیں۔',mask:'😷 باہر جائیں تو آج ماسک ضرور پہنیں۔',water:'💧 پانی ابال کر پئیں۔',heat:'🥵 آج بہت گرمی ہے۔ زیادہ پانی پئیں اور دوپہر کی دھوپ سے بچیں۔',noise:'🔊 شور بہت زیادہ ہے۔ اپنے کانوں اور نیند کا خیال رکھیں۔',ok:'✅ آج حالات ٹھیک ہیں۔ باہر کا لطف اٹھائیں۔'},
 n:{air:'ہوا',water:'پانی',thermal:'حرارتی',land:'زمین',noise:'شور',light:'روشنی',radioactive:'تابکاری'}}};
 const K=['air','water','thermal','land','noise','light','radioactive'];
-let lang='en',data=null,sel='all',det={};
+let lang='en',data=null,sel='all',det={},data2=null,CH={};
 const ul=(a,raw)=>'<ul>'+(a||[]).map(z=>'<li>'+(raw?z:esc(z))+'</li>').join('')+'</ul>';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -132,12 +146,41 @@ function ui(){
   const t=T[lang];
   document.documentElement.lang=lang;document.documentElement.dir=lang=='ur'?'rtl':'ltr';
   document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t[e.dataset.t]);
-  $('#q').placeholder=t.ph;$('#h1').innerHTML=t.h1;
+  $('#q').placeholder=t.ph;$('#q2').placeholder=t.ph2;$('#loc').textContent=t.loc;tags();$('#h1').innerHTML=t.h1;
   $('#lg').textContent=lang=='en'?'اردو':'English';
   const dk=document.documentElement.dataset.theme=='dark';
   $('#th').textContent=dk?t.light:t.dark;
   more();
   render();
+}
+function recent(){try{return JSON.parse(localStorage.getItem('rc')||'[]')}catch(e){return[]}}
+function remember(c){try{localStorage.setItem('rc',JSON.stringify([c,...recent().filter(x=>x!=c)].slice(0,5)))}catch(e){}tags();}
+function tags(){const L=[...new Set([...recent(),'Lahore','Karachi','Delhi','London','Tokyo'])].slice(0,9);$('#tags').innerHTML=L.map(c=>`<button type="button" class="chip" data-c="${esc(c)}">${esc(c)}</button>`).join('');}
+function advice(a,L){const o=a.overall.score,I=a.items,A=T[lang].adv,out=[];
+  if(o>=75||I.air.score>=60)out.push(['r',A.noout]);
+  if(I.air.score>=40)out.push(['o',A.mask]);
+  if(I.water.score>=50)out.push(['o',A.water]);
+  if((L.temp??0)>=35)out.push(['o',A.heat]);
+  if(I.noise.score>=70)out.push(['y',A.noise]);
+  if(!out.length)out.push(['g',A.ok]);
+  return out;}
+function histNote(d){const h=d.history.map(x=>x.v),avg=h.slice(0,-1).reduce((s,v)=>s+v,0)/Math.max(1,h.length-1)||1,cur=d.live.aqi??h[h.length-1],df=Math.round((cur-avg)/avg*100);return T[lang].hn(Math.abs(df),df);}
+function extras(a,L,t){
+  let h=`<div class="adv">${advice(a,L).map(x=>`<div class="al ${x[0]}">${x[1]}</div>`).join('')}</div><button class="go" onclick="window.print()">⬇ ${t.dl}</button>
+  <div class="two"><div class="card lc"><h3>${t.rad}</h3><div class="cv"><canvas id="rad"></canvas></div></div>`
+  +(data.history&&data.history.length>1?`<div class="card lc"><h3>${t.hist}</h3><div class="cv"><canvas id="his"></canvas></div><p>${histNote(data)}</p></div>`:'')+`</div>`;
+  if(data2){const b=data2.ai;h+=`<div class="card lc"><h3>${esc(data.city)} vs ${esc(data2.city)}</h3>`+K.map(k=>`<p>${t.n[k]}: <b style="color:${col(a.items[k].score)}">${Math.round(a.items[k].score)}</b> vs <b style="color:${col(b.items[k].score)}">${Math.round(b.items[k].score)}</b></p>`).join('')+`<p><b>${esc(a.overall.score<=b.overall.score?data.city:data2.city)}</b> ${t.cleaner}</p></div>`;}
+  return h;}
+function mk(id,c){const e=document.getElementById(id);if(!e)return;if(CH[id])CH[id].destroy();CH[id]=new Chart(e,c);}
+function draw(){
+  if(typeof Chart=='undefined')return;
+  Chart.defaults.font.family="'Comic Sans MS','Comic Neue',cursive";
+  const t=T[lang],a=data.ai,cs=getComputedStyle(document.documentElement),m=cs.getPropertyValue('--mut').trim(),g=cs.getPropertyValue('--bd').trim(),ax={ticks:{color:m},grid:{color:g}};
+  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),borderColor:'#e8a93a',backgroundColor:'rgba(232,169,58,.25)'}];
+  if(data2)ds.push({label:data2.city,data:K.map(k=>data2.ai.items[k].score),borderColor:'#4aa8ff',backgroundColor:'rgba(74,168,255,.2)'});
+  mk('rad',{type:'radar',data:{labels:K.map(k=>t.n[k]),datasets:ds},options:{maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{color:m,backdropColor:'transparent'},grid:{color:g},angleLines:{color:g},pointLabels:{color:m}}},plugins:{legend:{labels:{color:m}}}}});
+  if(data.history&&data.history.length>1)mk('his',{type:'line',data:{labels:data.history.map(x=>x.d.slice(5)),datasets:[{label:'US AQI',data:data.history.map(x=>x.v),borderColor:'#e5484d',tension:.3}]},options:{maintainAspectRatio:false,scales:{x:ax,y:ax},plugins:{legend:{display:false}}}});
+  if(sel!='all'){const y=new Date().getFullYear(),f=a.items[sel].forecast;mk('fcc',{type:'line',data:{labels:f.map((_,j)=>y+j+1),datasets:[{label:t.n[sel],data:f,borderColor:col(f[4]),backgroundColor:'rgba(232,169,58,.15)',fill:true,tension:.3}]},options:{maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{color:m},grid:{color:g}},x:ax},plugins:{legend:{display:false}}}});}
 }
 function render(){
   if(!data)return;
@@ -145,7 +188,7 @@ function render(){
   let h=`<div class="top"><div class="gauge"><svg width="150" height="150"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--bd)" stroke-width="12"/><circle cx="75" cy="75" r="${R}" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*o.score/100} ${C}"/></svg><div class="n">${Math.round(o.score)}</div></div>
   <div><h2 style="margin:0">${esc(data.city)}, ${esc(data.country)}</h2><div style="color:var(--mut)">${t.overall}: ${esc(o.verdict[lang])}</div>
   <div class="live"><span class="pill">${t.aqi}: ${L.aqi??'-'}</span><span class="pill">PM2.5: ${L.pm25??'-'}</span><span class="pill">${t.temp}: ${L.temp??'-'}°C</span></div></div></div>`;
-  h+=`<div class="chips"><button class="chip ${sel=='all'?'on':''}" data-k="all">${t.all}</button>`+K.map(k=>`<button class="chip ${sel==k?'on':''}" data-k="${k}">${t.n[k]}</button>`).join('')+`</div>`;
+  h+=extras(a,L,t)+`<div class="chips"><button class="chip ${sel=='all'?'on':''}" data-k="all">${t.all}</button>`+K.map(k=>`<button class="chip ${sel==k?'on':''}" data-k="${k}">${t.n[k]}</button>`).join('')+`</div>`;
   const list=sel=='all'?K:[sel];
   h+=`<div class="grid ${sel=='all'?'':'one'}">`+list.map(k=>{
     const i=a.items[k],s=i.score,cc=col(s),full=sel!='all';
@@ -153,12 +196,12 @@ function render(){
     <b style="color:${cc}">${esc(i.level[lang])} · ${Math.round(s)}/100</b><div class="bar"><i style="width:${s}%;background:${cc}"></i></div>${ul(i.points[lang])}`;
     if(full){
       const y=new Date().getFullYear(),d=det[k];
-      x+=`<h4>${t.fc}</h4><div class="fc">`+i.forecast.map((v,j)=>`<div><i style="height:${Math.max(4,v)}%;background:${col(v)}"></i>${y+j+1}<br>${Math.round(v)}</div>`).join('')+`</div>`;
+      x+=`<h4>${t.fc}</h4><div class="cv" style="height:240px"><canvas id="fcc"></canvas></div><p><b>${i.forecast[4]>i.forecast[0]?'📈 '+t.up:i.forecast[4]<i.forecast[0]?'📉 '+t.dn:'➡️ '+t.fl}</b></p>`;
       x+=d?`<h4>${t.causes}</h4>${ul(d.causes[lang])}<h4>${t.harm}</h4>${ul(d.harm[lang])}<h4>${t.out}</h4>${ul(d.outlook[lang].map((z,j)=>'<b>'+(y+j+1)+':</b> '+esc(z)),1)}<h4>${t.steps}</h4>${ul(d.steps[lang])}`:`<p>${t.ld}</p>`;
     }else x+=`<small style="color:var(--mut)">${t.tap}</small>`;
     return x+'</div>';
   }).join('')+'</div>';
-  $('#out').innerHTML=h;
+  $('#out').innerHTML=h;draw();
 }
 $('#out').addEventListener('click',async e=>{
   const b=e.target.closest('[data-k]');if(!b)return;sel=b.dataset.k;render();
@@ -169,14 +212,21 @@ $('#out').addEventListener('click',async e=>{
 });
 $('#lg').onclick=()=>{lang=lang=='en'?'ur':'en';ui();};
 $('#th').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme=='dark'?'light':'dark';ui();};
+async function load(q){const r=await fetch('/api/city?city='+encodeURIComponent(q));const d=await r.json();if(!r.ok)throw new Error(d.error);return d;}
 $('#f').onsubmit=async e=>{
-  e.preventDefault();const q=$('#q').value.trim();if(!q)return;
-  $('#status').textContent=T[lang].load;$('#out').innerHTML='';sel='all';det={};
-  try{
-    const r=await fetch('/api/city?city='+encodeURIComponent(q));
-    const d=await r.json();if(!r.ok)throw new Error(d.error);
-    data=d;$('#status').textContent='';render();
-  }catch(err){$('#status').textContent='Error: '+err.message;}
+  e.preventDefault();const q=$('#q').value.trim(),q2=$('#q2').value.trim();if(!q)return;
+  $('#status').textContent=T[lang].load;$('#out').innerHTML='';sel='all';det={};data2=null;
+  try{[data,data2]=await Promise.all([load(q),q2?load(q2):null]);$('#status').textContent='';remember(q);render();}
+  catch(err){$('#status').textContent='Error: '+err.message;}
+};
+$('#tags').onclick=e=>{const b=e.target.closest('[data-c]');if(b){$('#q').value=b.dataset.c;$('#q2').value='';$('#f').requestSubmit();}};
+$('#loc').onclick=()=>{
+  if(!navigator.geolocation){$('#status').textContent='Location is not supported on this device';return;}
+  $('#status').textContent=T[lang].load;
+  navigator.geolocation.getCurrentPosition(async p=>{
+    try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${p.coords.latitude}&longitude=${p.coords.longitude}&localityLanguage=en`);const d=await r.json();const c=d.city||d.locality||d.principalSubdivision;if(!c)throw 0;$('#q').value=c;$('#q2').value='';$('#f').requestSubmit();}
+    catch(e){$('#status').textContent='Could not find your city';}
+  },()=>{$('#status').textContent='Location permission was denied';});
 };
 ui();
 </script>
