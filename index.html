@@ -17,7 +17,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Comic Sans MS','
 @keyframes mv{0%{top:-20%;left:-10%}100%{top:40%;left:55%}}
 @keyframes gr{to{transform:translate(60px,60px)}}
 .wrap{max-width:1000px;margin:auto;padding:0 20px}
-nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0 18px;margin-bottom:8px;border-bottom:1px solid var(--bd)}
+[data-theme=dark] nav{border-bottom-color:rgba(255,255,255,.15)}
 .logo{font-weight:800;font-size:22px}.logo b{color:var(--ac)}
 .tools button{background:var(--card);border:1px solid var(--bd);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;margin-inline-start:8px;font:inherit;font-size:14px}
 .tag{color:var(--mut);letter-spacing:.2em;font-size:12px;text-transform:uppercase;margin-top:40px}
@@ -65,10 +66,20 @@ summary{cursor:pointer;font-weight:600}
 .al.r{border-inline-start-color:#e5484d}.al.o{border-inline-start-color:#f08a3c}.al.y{border-inline-start-color:#e8c23a}.al.g{border-inline-start-color:#3fb97a}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
 .cv{position:relative;height:300px}
+[dir=rtl] body{line-height:2.3}
+[dir=rtl] h1,[dir=rtl] .sh{line-height:2.4;padding:.15em 0;margin-block:.2em}
+[dir=rtl] h2,[dir=rtl] h3,[dir=rtl] h4,[dir=rtl] p,[dir=rtl] li,[dir=rtl] summary,[dir=rtl] .sub,[dir=rtl] .al,[dir=rtl] .pill,[dir=rtl] .stat,[dir=rtl] .tag{line-height:2.3}
+[dir=rtl] .tag{letter-spacing:0;text-transform:none}
+[dir=rtl] .card p{margin:10px 0}
+[dir=rtl] .card h4{margin:20px 0 4px}
+[dir=rtl] .card li{margin:10px 0}
+[dir=rtl] .chip,[dir=rtl] .pill,[dir=rtl] .tools button,[dir=rtl] .go{line-height:1.9;padding-block:10px}
+[dir=rtl] .gauge .n,[dir=rtl] .stat b{line-height:1.3}
 @media print{.bg,nav,form,#tags,.chips,#more,footer,button,.links{display:none!important}
 html[data-theme]{--fg:#000;--mut:#333;--card:#fff;--bd:#bbb;--bg:#fff}
 .card,.al,.top{break-inside:avoid}}
 </style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e8a93a'/%3E%3Cpath d='M16 46C16 28 28 16 48 16c0 20-12 32-28 32z' fill='%23fff'/%3E%3Cpath d='M20 44L40 24' stroke='%23e8a93a' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Cpath d='M8 54h20M14 59h14' stroke='%23fff' stroke-width='3' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -176,9 +187,12 @@ function draw(){
   if(typeof Chart=='undefined')return;
   Chart.defaults.font.family="'Comic Sans MS','Comic Neue',cursive";
   const t=T[lang],a=data.ai,cs=getComputedStyle(document.documentElement),m=cs.getPropertyValue('--mut').trim(),g=cs.getPropertyValue('--bd').trim(),ax={ticks:{color:m},grid:{color:g}};
-  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),borderColor:'#e8a93a',backgroundColor:'rgba(232,169,58,.25)'}];
-  if(data2)ds.push({label:data2.city,data:K.map(k=>data2.ai.items[k].score),borderColor:'#4aa8ff',backgroundColor:'rgba(74,168,255,.2)'});
-  mk('rad',{type:'radar',data:{labels:K.map(k=>t.n[k]),datasets:ds},options:{maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{color:m,backdropColor:'transparent'},grid:{color:g},angleLines:{color:g},pointLabels:{color:m}}},plugins:{legend:{labels:{color:m}}}}});
+  const IC={air:'🌫️',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
+  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),backgroundColor:'#e8a93a',borderRadius:6}];
+  if(data2)ds.push({label:data2.city,data:K.map(k=>data2.ai.items[k].score),backgroundColor:'#4aa8ff',borderRadius:6});
+  mk('rad',{type:'bar',data:{labels:K.map(k=>IC[k]+' '+t.n[k]),datasets:ds},options:{maintainAspectRatio:false,
+    scales:{y:{min:0,max:100,ticks:{color:m,stepSize:20},grid:{color:g}},x:{ticks:{color:m},grid:{display:false}}},
+    plugins:{legend:{labels:{color:m}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+Math.round(c.parsed.y)+' / 100'}}}}});
   if(data.history&&data.history.length>1)mk('his',{type:'line',data:{labels:data.history.map(x=>x.d.slice(5)),datasets:[{label:'US AQI',data:data.history.map(x=>x.v),borderColor:'#e5484d',tension:.3}]},options:{maintainAspectRatio:false,scales:{x:ax,y:ax},plugins:{legend:{display:false}}}});
   if(sel!='all'){const y=new Date().getFullYear(),f=a.items[sel].forecast;mk('fcc',{type:'line',data:{labels:f.map((_,j)=>y+j+1),datasets:[{label:t.n[sel],data:f,borderColor:col(f[4]),backgroundColor:'rgba(232,169,58,.15)',fill:true,tension:.3}]},options:{maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{color:m},grid:{color:g}},x:ax},plugins:{legend:{display:false}}}});}
 }
