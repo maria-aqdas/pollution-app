@@ -119,7 +119,7 @@ function finalize(ai, live, p) {
       s = airScoreOf(live);                 // REAL: from live AQI
       i.level = airLevelOf(live);
     } else {
-      if (k === 'thermal') s = Math.max(s, heatFloor(live.temp));   // REAL temperature sets a minimum
+      if (k === 'thermal') s = Math.max(s, heatFloor(Math.max(live.temp ?? -99, live.feels ?? -99)));   // REAL temperature sets a minimum
       if (k === 'radioactive') s = hot ? clamp(s) : clamp(s, 1, 5); // normal cities: 1-5 only
       else s = deRound(s, key + k);
       i.level = levelOf(s);
@@ -193,6 +193,7 @@ module.exports = async (req, res) => {
     const city = (req.query.city || '').trim();
     const type = (req.query.type || '').trim();
     if (!city) return res.status(400).json({ error: 'City required' });
+    if (city.length > 60 || !/^[\p{L}\p{N}\s.,'’()-]+$/u.test(city)) return res.status(400).json({ error: 'Please enter a valid city name' });
 
     const g = await (await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
@@ -200,20 +201,38 @@ module.exports = async (req, res) => {
     const p = g.results && g.results[0];
     if (!p) return res.status(404).json({ error: 'City not found' });
 
-    const [aq, wx, hs] = await Promise.all([
-      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10`).then(r => r.json()),
+    const [aq, wx, hs, ex] = await Promise.all([
+      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide`).then(r => r.json()),
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`).then(r => r.json()),
-      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=1`).then(r => r.json()).catch(() => ({}))
+      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=2&timezone=auto`).then(r => r.json()).catch(() => ({})),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=apparent_temperature,uv_index`).then(r => r.json()).catch(() => ({}))
     ]);
     const live = {
       aqi: aq.current && aq.current.us_aqi,
       pm25: aq.current && aq.current.pm2_5,
       pm10: aq.current && aq.current.pm10,
-      temp: wx.current && wx.current.temperature_2m
+      temp: wx.current && wx.current.temperature_2m,
+      no2: aq.current && aq.current.nitrogen_dioxide,
+      o3: aq.current && aq.current.ozone,
+      so2: aq.current && aq.current.sulphur_dioxide,
+      co: aq.current && aq.current.carbon_monoxide,
+      feels: ex.current && ex.current.apparent_temperature,
+      uv: ex.current && ex.current.uv_index
     };
     const hr = hs.hourly || {}, days = {};
     (hr.time || []).forEach((tm, i) => { const v = hr.us_aqi[i]; if (v == null) return; (days[tm.slice(0, 10)] = days[tm.slice(0, 10)] || []).push(v); });
-    const history = Object.keys(days).sort().map(d => ({ d, v: Math.round(days[d].reduce((a, b) => a + b, 0) / days[d].length) }));
+    // local time at the city (timezone=auto): last 7 days + today for the chart
+    const nowL = new Date(Date.now() + (hs.utc_offset_seconds || 0) * 1000).toISOString().slice(0, 13);
+    const history = Object.keys(days).sort().filter(d => d <= nowL.slice(0, 10)).map(d => ({ d, v: Math.round(days[d].reduce((a, b) => a + b, 0) / days[d].length) }));
+    // best / worst 2-hour window for going outside (next 24h, between 5 AM and 9 PM, real hourly AQI forecast)
+    const hrs = (hr.time || []).map((t, i) => ({ t, v: hr.us_aqi[i] })).filter(x => x.v != null && x.t.slice(0, 13) >= nowL).slice(0, 24).filter(x => { const h = +x.t.slice(11, 13); return h >= 5 && h <= 21; });
+    let best = null, worst = null;
+    for (let i = 0; i < hrs.length - 1; i++) {
+      if (+hrs[i + 1].t.slice(11, 13) !== +hrs[i].t.slice(11, 13) + 1) continue;
+      const w = { from: hrs[i].t, aqi: Math.round((hrs[i].v + hrs[i + 1].v) / 2) };
+      if (!best || w.aqi < best.aqi) best = w;
+      if (!worst || w.aqi > worst.aqi) worst = w;
+    }
 
     const airScore = airScoreOf(live), airLevel = airLevelOf(live);
     const system = systemPrompt(live, p, airScore, airLevel);
@@ -236,7 +255,7 @@ Return ONLY JSON: {"causes":${list('5 or more')},"harm":${list('5 or more')},"ou
     }
 
     res.setHeader('Cache-Control', ok ? 's-maxage=3600, stale-while-revalidate=86400' : 'no-store');
-    res.status(200).json({ city: p.name, country: p.country, live, history, ai, degraded: !ok });
+    res.status(200).json({ city: p.name, country: p.country, live, history, best, worst, ai, degraded: !ok });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
