@@ -6,8 +6,8 @@
 <title>CityAir - Pollution Checker</title>
 <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#16181b;--fg:#eef0f1;--mut:#a3a9ad;--card:rgba(255,255,255,.05);--bd:rgba(255,255,255,.1);--ac:#e8a93a;--navbg:rgba(30,32,36,.55)}
-[data-theme=light]{--bg:#f6f3ec;--fg:#1c1d1f;--mut:#5d6266;--card:rgba(0,0,0,.04);--bd:rgba(0,0,0,.12);--ac:#c88510;--navbg:rgba(255,255,255,.65)}
+:root{--bg:#16181b;--fg:#eef0f1;--mut:#a3a9ad;--card:rgba(255,255,255,.05);--bd:rgba(255,255,255,.1);--ac:#e8a93a;--navbg:rgba(30,32,36,.82)}
+[data-theme=light]{--bg:#f6f3ec;--fg:#1c1d1f;--mut:#5d6266;--card:rgba(0,0,0,.04);--bd:rgba(0,0,0,.12);--ac:#c88510;--navbg:rgba(255,255,255,.85)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:'Comic Sans MS','Comic Sans','Comic Neue',cursive;min-height:100vh;overflow-x:hidden}
 [dir=rtl] body{font-family:'Noto Nastaliq Urdu',serif;line-height:2.1}
@@ -17,7 +17,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Comic Sans MS','
 @keyframes mv{0%{top:-20%;left:-10%}100%{top:40%;left:55%}}
 @keyframes gr{to{transform:translate(60px,60px)}}
 .wrap{max-width:1000px;margin:auto;padding:0 20px}
-nav{position:sticky;top:12px;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px;padding:8px 10px;padding-inline-start:20px;border-radius:9999px;background:var(--navbg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+nav{position:sticky;top:12px;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px;padding:8px 10px;padding-inline-start:20px;border-radius:9999px;background:var(--navbg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.15);box-shadow:0 8px 30px rgba(0,0,0,.25)}
 [data-theme=light] nav{border-color:var(--bd);box-shadow:0 8px 30px rgba(0,0,0,.08)}
 .logo{font-weight:800;font-size:22px}.logo b{color:var(--ac)}
 .tools button{background:var(--card);border:1px solid var(--bd);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;margin-inline-start:8px;font:inherit;font-size:14px}
@@ -86,6 +86,10 @@ summary{cursor:pointer;font-weight:600}
 [dir=rtl] .card li{margin:10px 0}
 [dir=rtl] .chip,[dir=rtl] .pill,[dir=rtl] .tools button,[dir=rtl] .go{line-height:1.9;padding-block:10px}
 [dir=rtl] .gauge .n,[dir=rtl] .stat b{line-height:1.3}
+:is([id]){scroll-margin-top:100px}
+.tx{flex:1;min-width:260px}
+.rk{display:grid;grid-template-columns:130px 1fr 46px;gap:12px;align-items:center;cursor:pointer;padding:6px 0}
+.rk:hover span{color:var(--ac)}.rk .bar{margin:0}
 @media print{.bg,nav,form,#tags,.chips,#more,footer,button,.links{display:none!important}
 html[data-theme]{--fg:#000;--mut:#333;--card:#fff;--bd:#bbb;--bg:#fff}
 .card,.al,.top{break-inside:avoid}}
@@ -113,11 +117,13 @@ html[data-theme]{--fg:#000;--mut:#333;--card:#fff;--bd:#bbb;--bg:#fff}
 </div>
 <script>
 const T={
-en:{tag:'Free pollution checker for any city',h1:'How clean is your <span>city</span>?',sub:'Type any city to see air, water, heat, land, noise, light and radioactive pollution, what harm it does, and a 5-year outlook, in simple words.',btn:'Check city',ph:'Enter a city, e.g. Lahore',load:'Checking... this takes a few seconds',all:'All',overall:'Overall pollution',causes:'Why it happens',harm:'Why it is harmful',fc:'Next 5 years (higher = worse)',tip:'What you can do',live:'Live data',est:'AI estimate',aqi:'Air quality index',temp:'Temperature',foot:'Air and temperature are live data. Water, land, noise, light and radiation are AI estimates, not official measurements.',light:'Light',dark:'Dark',tap:'Tap a card for details',out:'What may happen in the next 5 years',steps:'Steps to improve it',ld:'Loading details...',ph2:'Compare with (optional)',loc:'📍 Use my location',rad:'All 7 pollutions at a glance',hist:'Air quality: last 7 days',dl:'Download report (PDF)',share:'Share',cleaner:'is cleaner overall',up:'Going up: getting worse',dn:'Going down: getting better',fl:'Staying about the same',
+en:{tag:'Free pollution checker for any city',h1:'How clean is your <span>city</span>?',sub:'Type any city to see air, water, heat, land, noise, light and radioactive pollution, what harm it does, and a 5-year outlook, in simple words.',btn:'Check city',ph:'Enter a city, e.g. Lahore',load:'Checking... this takes a few seconds',all:'All',overall:'Overall pollution',causes:'Why it happens',harm:'Why it is harmful',fc:'Next 5 years (higher = worse)',tip:'What you can do',live:'Live data',est:'AI estimate',aqi:'Air quality index',temp:'Temperature',foot:'Air and temperature are live data. Water, land, noise, light and radiation are AI estimates, not official measurements.',light:'Light',dark:'Dark',tap:'Tap a card for details',out:'What may happen in the next 5 years',steps:'Steps to improve it',ld:'Loading details...',ph2:'Compare with (optional)',loc:'📍 Use my location',rad:'All 7 pollutions at a glance',hist:'Air quality: last 7 days',dl:'Download report (PDF)',share:'Share',top:'Biggest problems',cig:'Cigarettes a day (like breathing this air)',who:'Times the WHO daily PM2.5 limit',best:'Best time to go out',worst:'Avoid going out',pol:'Which pollutant is the problem?',feels:'Feels like',
+note:'Cigarette and WHO numbers are simple estimates from the current PM2.5 (about 22 µg/m³ = 1 cigarette a day; WHO daily guideline 15 µg/m³).',main:n=>`Main pollutant now: ${n}. Bars over 100% are above the WHO daily guideline.`,cleaner:'is cleaner overall',up:'Going up: getting worse',dn:'Going down: getting better',fl:'Staying about the same',
 hn:(p,d)=>d>5?`Today's air is ${p}% worse than the average of the last 6 days.`:d<-5?`Today's air is ${p}% better than the average of the last 6 days.`:`Today's air is about the same as the last 6 days.`,
 adv:{noout:'🚫 Not safe outside today for children, old people and sick people. Please stay indoors.',mask:'😷 Wear a mask today if you go outside.',water:'💧 Boil the water before you drink it.',heat:'🥵 Very hot today. Drink more water and avoid the midday sun.',noise:'🔊 Very noisy. Protect your ears and your sleep.',ok:'✅ Things look fine today. Enjoy the outdoors.'},
 n:{air:'Air',water:'Water',thermal:'Thermal',land:'Land',noise:'Noise',light:'Light',radioactive:'Radioactive'}},
-ur:{tag:'کسی بھی شہر کی آلودگی چیک کریں',h1:'آپ کا <span>شہر</span> کتنا صاف ہے؟',sub:'کسی بھی شہر کا نام لکھیں اور ہوا، پانی، حرارت، زمین، شور، روشنی اور تابکاری کی آلودگی، اس کے نقصانات اور اگلے 5 سال کا اندازہ آسان الفاظ میں دیکھیں۔',btn:'شہر چیک کریں',ph:'شہر کا نام لکھیں، مثلاً لاہور',load:'چیک ہو رہا ہے... چند سیکنڈ لگیں گے',all:'سب',overall:'مجموعی آلودگی',causes:'یہ کیوں ہوتی ہے',harm:'نقصانات',fc:'اگلے 5 سال (زیادہ = بدتر)',tip:'آپ کیا کر سکتے ہیں',live:'لائیو ڈیٹا',est:'AI اندازہ',aqi:'ہوا کا معیار',temp:'درجہ حرارت',foot:'ہوا اور درجہ حرارت لائیو ڈیٹا ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، سرکاری پیمائش نہیں۔',light:'لائٹ',dark:'ڈارک',tap:'تفصیل کے لیے کارڈ دبائیں',out:'اگلے 5 سال میں کیا ہو سکتا ہے',steps:'بہتری کے اقدامات',ld:'تفصیل لوڈ ہو رہی ہے...',ph2:'موازنے کے لیے شہر (اختیاری)',loc:'📍 میرا مقام',rad:'ساتوں آلودگیاں ایک نظر میں',hist:'ہوا کا معیار: پچھلے 7 دن',dl:'رپورٹ ڈاؤن لوڈ کریں (PDF)',share:'شیئر کریں',cleaner:'مجموعی طور پر زیادہ صاف ہے',up:'بڑھ رہی ہے: حالات خراب ہو رہے ہیں',dn:'کم ہو رہی ہے: حالات بہتر ہو رہے ہیں',fl:'تقریباً ویسی ہی رہے گی',
+ur:{tag:'کسی بھی شہر کی آلودگی چیک کریں',h1:'آپ کا <span>شہر</span> کتنا صاف ہے؟',sub:'کسی بھی شہر کا نام لکھیں اور ہوا، پانی، حرارت، زمین، شور، روشنی اور تابکاری کی آلودگی، اس کے نقصانات اور اگلے 5 سال کا اندازہ آسان الفاظ میں دیکھیں۔',btn:'شہر چیک کریں',ph:'شہر کا نام لکھیں، مثلاً لاہور',load:'چیک ہو رہا ہے... چند سیکنڈ لگیں گے',all:'سب',overall:'مجموعی آلودگی',causes:'یہ کیوں ہوتی ہے',harm:'نقصانات',fc:'اگلے 5 سال (زیادہ = بدتر)',tip:'آپ کیا کر سکتے ہیں',live:'لائیو ڈیٹا',est:'AI اندازہ',aqi:'ہوا کا معیار',temp:'درجہ حرارت',foot:'ہوا اور درجہ حرارت لائیو ڈیٹا ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، سرکاری پیمائش نہیں۔',light:'لائٹ',dark:'ڈارک',tap:'تفصیل کے لیے کارڈ دبائیں',out:'اگلے 5 سال میں کیا ہو سکتا ہے',steps:'بہتری کے اقدامات',ld:'تفصیل لوڈ ہو رہی ہے...',ph2:'موازنے کے لیے شہر (اختیاری)',loc:'📍 میرا مقام',rad:'ساتوں آلودگیاں ایک نظر میں',hist:'ہوا کا معیار: پچھلے 7 دن',dl:'رپورٹ ڈاؤن لوڈ کریں (PDF)',share:'شیئر کریں',top:'سب سے بڑے مسائل',cig:'روزانہ سگریٹ کے برابر (اس ہوا میں سانس لینا)',who:'WHO کی روزانہ PM2.5 حد کا کتنا گنا',best:'باہر جانے کا بہترین وقت',worst:'باہر جانے سے بچیں',pol:'کون سی آلودگی مسئلہ ہے؟',feels:'محسوس ہوتا ہے',
+note:'سگریٹ اور WHO کے نمبر موجودہ PM2.5 سے سادہ اندازے ہیں (تقریباً 22 µg/m³ = روزانہ 1 سگریٹ؛ WHO کی روزانہ حد 15 µg/m³)۔',main:n=>`اس وقت سب سے زیادہ: ${n}۔ 100% سے اوپر والے بار WHO کی روزانہ حد سے زیادہ ہیں۔`,cleaner:'مجموعی طور پر زیادہ صاف ہے',up:'بڑھ رہی ہے: حالات خراب ہو رہے ہیں',dn:'کم ہو رہی ہے: حالات بہتر ہو رہے ہیں',fl:'تقریباً ویسی ہی رہے گی',
 hn:(p,d)=>d>5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% زیادہ خراب ہے۔`:d<-5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% بہتر ہے۔`:`آج کی ہوا پچھلے 6 دن جیسی ہی ہے۔`,
 adv:{noout:'🚫 آج بچوں، بزرگوں اور بیمار لوگوں کے لیے باہر جانا محفوظ نہیں۔ گھر کے اندر رہیں۔',mask:'😷 باہر جائیں تو آج ماسک ضرور پہنیں۔',water:'💧 پانی ابال کر پئیں۔',heat:'🥵 آج بہت گرمی ہے۔ زیادہ پانی پئیں اور دوپہر کی دھوپ سے بچیں۔',noise:'🔊 شور بہت زیادہ ہے۔ اپنے کانوں اور نیند کا خیال رکھیں۔',ok:'✅ آج حالات ٹھیک ہیں۔ باہر کا لطف اٹھائیں۔'},
 n:{air:'ہوا',water:'پانی',thermal:'حرارتی',land:'زمین',noise:'شور',light:'روشنی',radioactive:'تابکاری'}}};
@@ -129,7 +135,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const col=s=>s<25?'#3fb97a':s<50?'#e8c23a':s<75?'#f08a3c':'#e5484d';
 const C={
 en:{nv:['Check city','Why it matters','How it works','FAQ'],ls:'What every person should know about each type of pollution',
-st:[['7','Pollution types'],['Live','Air data'],['2','Languages'],['Free','To use']],
+rk:['Pakistan live ranking','Cities sorted by air quality right now. Tap a city to check it.'],st:[['7','Pollution types'],['Live','Air data'],['2','Languages'],['Free','To use']],
 l:{air:'Dirty air carries tiny particles (PM2.5) deep into your lungs and blood. It causes asthma, heart disease and shorter life, and children and the elderly suffer most.',
 water:'Unsafe water spreads diarrhea, typhoid and cholera, and poisons crops and fish. Water pollution is often invisible and has no smell.',
 thermal:'Heat from cities, factories and power plants warms air and water. It causes heatstroke, higher power bills and kills river life.',
@@ -143,7 +149,7 @@ f:[['Is the data real?','Air quality and temperature are live. Water, land, nois
 ['How is the 5-year forecast made?','The AI projects each score from current conditions and general trends. It is an informed guess, not a promise.'],
 ['What can I do?','Wear a mask on bad air days, save electricity and water, never burn waste, plant trees and report pollution to the local authorities.']]},
 ur:{nv:['شہر چیک کریں','یہ کیوں اہم ہے','یہ کیسے کام کرتا ہے','سوالات'],ls:'ہر قسم کی آلودگی کے بارے میں ہر شخص کو کیا جاننا چاہیے',
-st:[['7','آلودگی کی اقسام'],['لائیو','ہوا کا ڈیٹا'],['2','زبانیں'],['مفت','استعمال کے لیے']],
+rk:['پاکستان کا لائیو درجہ','شہر اس وقت ہوا کے معیار کے لحاظ سے۔ کسی شہر پر دبائیں۔'],st:[['7','آلودگی کی اقسام'],['لائیو','ہوا کا ڈیٹا'],['2','زبانیں'],['مفت','استعمال کے لیے']],
 l:{air:'آلودہ ہوا کے باریک ذرات (PM2.5) پھیپھڑوں اور خون تک پہنچ جاتے ہیں۔ اس سے دمہ، دل کی بیماری اور عمر میں کمی ہوتی ہے، اور بچے اور بزرگ سب سے زیادہ متاثر ہوتے ہیں۔',
 water:'ناصاف پانی سے اسہال، ٹائیفائیڈ اور ہیضہ پھیلتا ہے اور فصلیں اور مچھلیاں بھی زہریلی ہو جاتی ہیں۔ پانی کی آلودگی اکثر نظر نہیں آتی۔',
 thermal:'شہروں، فیکٹریوں اور بجلی گھروں کی گرمی ہوا اور پانی کو گرم کرتی ہے۔ اس سے لو لگتی ہے، بجلی کا بل بڑھتا ہے اور دریاؤں کی زندگی مرتی ہے۔',
@@ -157,10 +163,11 @@ f:[['کیا ڈیٹا اصلی ہے؟','ہوا کا معیار اور درجہ ح
 ['5 سالہ اندازہ کیسے بنتا ہے؟','AI موجودہ حالات اور عمومی رجحانات سے ہر اسکور کا اندازہ لگاتا ہے۔ یہ سمجھدار اندازہ ہے، وعدہ نہیں۔'],
 ['میں کیا کر سکتا ہوں؟','خراب ہوا والے دن ماسک پہنیں، بجلی اور پانی بچائیں، کچرا نہ جلائیں، درخت لگائیں اور آلودگی کی شکایت متعلقہ ادارے کو کریں۔']]}};
 function more(){
-  const c=C[lang],n=T[lang].n,E={air:'🌫️',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
+  const c=C[lang],n=T[lang].n,E={air:'💨',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
+  const rk=rank?`<section id="rank"><h2 class="sh">${c.rk[0]}</h2><p class="sub">${c.rk[1]}</p><div class="card lc" style="margin-top:20px">${rank.map((x,i)=>`<div class="rk" data-c="${esc(x.en)}"><span>${i+1}. ${esc(lang=='ur'?x.ur:x.en)}</span><div class="bar"><i style="width:${Math.min(100,x.aqi/3)}%;background:${col(x.aqi/3)}"></i></div><b>${x.aqi}</b></div>`).join('')}</div></section>`:'';
   $('.links').innerHTML=['f','learn','how','faq'].map((h,i)=>`<a href="#${h}">${c.nv[i]}</a>`).join('');
   $('#more').innerHTML=`<div class="stats">${c.st.map(s=>`<div class="stat"><b>${s[0]}</b>${s[1]}</div>`).join('')}</div>
-  <section id="learn"><h2 class="sh">${c.nv[1]}</h2><p class="sub">${c.ls}</p><div class="grid" style="margin-top:20px">${K.map(k=>`<div class="card lc"><h3>${E[k]} ${n[k]}</h3><p>${c.l[k]}</p></div>`).join('')}</div></section>
+  ${rk}<section id="learn"><h2 class="sh">${c.nv[1]}</h2><p class="sub">${c.ls}</p><div class="grid" style="margin-top:20px">${K.map(k=>`<div class="card lc"><h3>${E[k]} ${n[k]}</h3><p>${c.l[k]}</p></div>`).join('')}</div></section>
   <section id="how"><h2 class="sh">${c.nv[2]}</h2><div class="grid">${c.h.map((s,i)=>`<div class="card lc"><span style="font-size:34px;font-weight:800;color:var(--ac)">${i+1}</span><h3>${s[0]}</h3><p>${s[1]}</p></div>`).join('')}</div></section>
   <section id="faq"><h2 class="sh">${c.nv[3]}</h2>${c.f.map(q=>`<details><summary>${q[0]}</summary><p style="color:var(--mut)">${q[1]}</p></details>`).join('')}</section>`;
 }
@@ -183,6 +190,15 @@ function share(){
   if(navigator.share){navigator.share({title:'CityAir',text:txt}).catch(()=>{});}
   else window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
 }
+let rank=null;
+async function loadRank(){try{const r=await fetch('/api/rank');const d=await r.json();if(d.list){rank=d.list;more();}}catch(e){}}
+const topIssues=a=>K.map(k=>[k,a.items[k].score]).sort((x,y)=>y[1]-x[1]).slice(0,2).map(x=>T[lang].n[x[0]]+' '+Math.round(x[1])).join(', ');
+const hw=w=>{if(!w)return '-';const h=+w.from.slice(11,13),f=x=>{x%=24;return (x%12||12)+(x<12?' AM':' PM');};return f(h)+'–'+f(h+2)+' (AQI '+w.aqi+')';};
+function polData(L){return [['PM2.5',L.pm25,15],['PM10',L.pm10,45],['NO₂',L.no2,25],['O₃',L.o3,100],['SO₂',L.so2,40],['CO',L.co,4000]].filter(x=>typeof x[1]=='number').map(x=>({n:x[0],pct:x[1]/x[2]*100}));}
+function insights(t){
+  const L=data.live,cig=typeof L.pm25=='number'?(L.pm25/22).toFixed(1):'-',who=typeof L.pm25=='number'?(L.pm25/15).toFixed(1)+'×':'-';
+  return `<div class="stats" style="margin-top:16px"><div class="stat"><b>${cig}</b>${t.cig}</div><div class="stat"><b>${who}</b>${t.who}</div><div class="stat"><b style="font-size:18px">${hw(data.best)}</b>${t.best}</div><div class="stat"><b style="font-size:18px">${hw(data.worst)}</b>${t.worst}</div></div><p style="color:var(--mut);font-size:13px">${t.note}</p>`;}
+function polCard(t){const P=polData(data.live);if(!P.length)return '';const top=P.slice().sort((x,y)=>y.pct-x.pct)[0];return `<div class="card lc"><h3>${t.pol}</h3><div class="cv" style="height:240px"><canvas id="pol"></canvas></div><p>${t.main(top.n)}</p></div>`;}
 function recent(){try{return JSON.parse(localStorage.getItem('rc')||'[]')}catch(e){return[]}}
 function remember(c){try{localStorage.setItem('rc',JSON.stringify([c,...recent().filter(x=>x!=c)].slice(0,5)))}catch(e){}tags();}
 function tags(){const seen=new Set(),tc=c=>c.trim().replace(/\b\w/g,x=>x.toUpperCase());
@@ -199,8 +215,8 @@ function advice(a,L){const o=a.overall.score,I=a.items,A=T[lang].adv,out=[];
 function histNote(d){const h=d.history.map(x=>x.v),avg=h.slice(0,-1).reduce((s,v)=>s+v,0)/Math.max(1,h.length-1)||1,cur=d.live.aqi??h[h.length-1],df=Math.round((cur-avg)/avg*100);return T[lang].hn(Math.abs(df),df);}
 function extras(a,L,t){
   let h=`<div class="adv">${advice(a,L).map(x=>`<div class="al ${x[0]}">${x[1]}</div>`).join('')}</div><button class="go" onclick="window.print()">⬇ ${t.dl}</button> <button class="go" type="button" onclick="share()">📤 ${t.share}</button>
-  <div class="two"><div class="card lc"><h3>${t.rad}</h3><div class="cv"><canvas id="rad"></canvas></div></div>`
-  +(data.history&&data.history.length>1?`<div class="card lc"><h3>${t.hist}</h3><div class="cv" style="height:200px"><canvas id="his"></canvas></div><p>${histNote(data)}</p></div>`:'')+`</div>`;
+  ${insights(t)}<div class="two"><div class="card lc"><h3>${t.rad}</h3><div class="cv"><canvas id="rad"></canvas></div></div>`
+  +(data.history&&data.history.length>1?`<div class="card lc"><h3>${t.hist}</h3><div class="cv" style="height:200px"><canvas id="his"></canvas></div><p>${histNote(data)}</p></div>`:'')+polCard(t)+`</div>`;
   if(data2){const b=data2.ai;h+=`<div class="card lc"><h3>${esc(data.city)} vs ${esc(data2.city)}</h3>`+K.map(k=>`<p>${t.n[k]}: <b style="color:${col(a.items[k].score)}">${Math.round(a.items[k].score)}</b> vs <b style="color:${col(b.items[k].score)}">${Math.round(b.items[k].score)}</b></p>`).join('')+`<p><b>${esc(a.overall.score<=b.overall.score?data.city:data2.city)}</b> ${t.cleaner}</p></div>`;}
   return h;}
 function mk(id,c){const e=document.getElementById(id);if(!e)return;if(CH[id])CH[id].destroy();CH[id]=new Chart(e,c);}
@@ -208,21 +224,23 @@ function draw(){
   if(typeof Chart=='undefined')return;
   Chart.defaults.font.family="'Comic Sans MS','Comic Neue',cursive";
   const t=T[lang],a=data.ai,cs=getComputedStyle(document.documentElement),m=cs.getPropertyValue('--mut').trim(),g=cs.getPropertyValue('--bd').trim(),ax={ticks:{color:m},grid:{color:g}};
-  const IC={air:'🌫️',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
-  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),backgroundColor:'#e8a93a',borderRadius:6}];
+  const IC={air:'💨',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
+  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),backgroundColor:data2?'#e8a93a':K.map(k=>col(a.items[k].score)),borderRadius:6}];
   if(data2)ds.push({label:data2.city,data:K.map(k=>data2.ai.items[k].score),backgroundColor:'#4aa8ff',borderRadius:6});
   mk('rad',{type:'bar',data:{labels:K.map(k=>IC[k]+' '+t.n[k]),datasets:ds},options:{maintainAspectRatio:false,
     scales:{y:{min:0,max:100,ticks:{color:m,stepSize:20},grid:{color:g}},x:{ticks:{color:m},grid:{display:false}}},
-    plugins:{legend:{labels:{color:m}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+Math.round(c.parsed.y)+' / 100'}}}}});
+    plugins:{legend:{display:!!data2,labels:{color:m}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+Math.round(c.parsed.y)+' / 100'}}}}});
   if(data.history&&data.history.length>1)mk('his',{type:'line',data:{labels:data.history.map(x=>x.d.slice(5)),datasets:[{label:'US AQI',data:data.history.map(x=>x.v),borderColor:'#e5484d',backgroundColor:'rgba(229,72,77,.15)',fill:true,tension:.35,pointRadius:c=>c.dataIndex==data.history.length-1?6:3}]},options:{maintainAspectRatio:false,scales:{x:ax,y:ax},plugins:{legend:{display:false}}}});
+  const P=polData(data.live);
+  if(P.length)mk('pol',{type:'bar',data:{labels:P.map(x=>x.n),datasets:[{data:P.map(x=>x.pct),backgroundColor:P.map(x=>x.pct>100?'#e5484d':x.pct>50?'#f08a3c':'#3fb97a'),borderRadius:6}]},options:{indexAxis:'y',maintainAspectRatio:false,scales:{x:{min:0,ticks:{color:m,callback:v=>v+'%'},grid:{color:g}},y:{ticks:{color:m},grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>Math.round(c.parsed.x)+'% of WHO daily guideline'}}}}});
   if(sel!='all'){const y=new Date().getFullYear(),f=a.items[sel].forecast;mk('fcc',{type:'line',data:{labels:f.map((_,j)=>y+j+1),datasets:[{label:t.n[sel],data:f,borderColor:col(f[4]),backgroundColor:'rgba(232,169,58,.15)',fill:true,tension:.3}]},options:{maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{color:m},grid:{color:g}},x:ax},plugins:{legend:{display:false}}}});}
 }
 function render(){
   if(!data)return;
   const t=T[lang],a=data.ai,L=data.live,o=a.overall,c=col(o.score),R=60,C=2*Math.PI*R;
   let h=`<div class="top"><div class="gw"><div class="gauge"><svg width="150" height="150"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--bd)" stroke-width="12"/><circle cx="75" cy="75" r="${R}" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*o.score/100} ${C}"/></svg><div class="n">${Math.round(o.score)}</div></div><div class="bdg" style="color:${c};border-color:${c}">${st(o.score)}</div></div>
-  <div><h2 style="margin:0">${esc(data.city)}, ${esc(data.country)}</h2><div style="color:var(--mut)">${t.overall}: ${esc(o.verdict[lang])}</div>
-  <div class="live"><span class="pill">${t.aqi}: ${L.aqi??'-'}</span><span class="pill">PM2.5: ${L.pm25??'-'}</span><span class="pill">${t.temp}: ${L.temp??'-'}°C</span></div></div></div>`;
+  <div class="tx"><h2 style="margin:0">${esc(data.city)}, ${esc(data.country)}</h2><div style="color:var(--mut)">${t.overall}: ${esc(o.verdict[lang])}</div><div style="color:var(--mut);margin-top:4px">${t.top}: ${topIssues(a)}</div>
+  <div class="live"><span class="pill">${t.aqi}: ${L.aqi??'-'}</span><span class="pill">PM2.5: ${L.pm25??'-'}</span><span class="pill">${t.temp}: ${L.temp??'-'}°C</span>${L.feels!=null?`<span class="pill">${t.feels}: ${L.feels}°C</span>`:''}${L.uv!=null?`<span class="pill">UV: ${L.uv}</span>`:''}</div></div></div>`;
   h+=extras(a,L,t)+`<div class="chips"><button class="chip ${sel=='all'?'on':''}" data-k="all">${t.all}</button>`+K.map(k=>`<button class="chip ${sel==k?'on':''}" data-k="${k}">${t.n[k]}</button>`).join('')+`</div>`;
   const list=sel=='all'?K:[sel];
   h+=`<div class="grid ${sel=='all'?'':'one'}">`+list.map(k=>{
@@ -251,9 +269,10 @@ async function load(q){const r=await fetch('/api/city?city='+encodeURIComponent(
 $('#f').onsubmit=async e=>{
   e.preventDefault();const q=$('#q').value.trim(),q2=$('#q2').value.trim();if(!q)return;
   $('#status').textContent=T[lang].load;$('#out').innerHTML='';sel='all';det={};data2=null;
-  try{[data,data2]=await Promise.all([load(q),q2?load(q2):null]);$('#status').textContent='';remember(data.city);render();}
+  try{[data,data2]=await Promise.all([load(q),q2?load(q2):null]);$('#status').textContent='';remember(data.city);render();$('#out').scrollIntoView({behavior:'smooth'});}
   catch(err){$('#status').textContent='Error: '+err.message;}
 };
+$('#more').onclick=e=>{const b=e.target.closest('[data-c]');if(b){$('#q').value=b.dataset.c;$('#q2').value='';window.scrollTo({top:0,behavior:'smooth'});$('#f').requestSubmit();}};
 $('#tags').onclick=e=>{const b=e.target.closest('[data-c]');if(b){$('#q').value=b.dataset.c;$('#q2').value='';$('#f').requestSubmit();}};
 $('#loc').onclick=()=>{
   if(!navigator.geolocation){$('#status').textContent='Location is not supported on this device';return;}
@@ -263,7 +282,7 @@ $('#loc').onclick=()=>{
     catch(e){$('#status').textContent='Could not find your city';}
   },()=>{$('#status').textContent='Location permission was denied';});
 };
-ui();
+ui();loadRank();
 const qp=new URLSearchParams(location.search).get('city');if(qp){$('#q').value=qp;$('#f').requestSubmit();}
 </script>
 </body>
