@@ -1,290 +1,590 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CityAir - Pollution Checker</title>
-<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClimaSphere AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
-:root{--bg:#16181b;--fg:#eef0f1;--mut:#a3a9ad;--card:rgba(255,255,255,.05);--bd:rgba(255,255,255,.1);--ac:#e8a93a;--navbg:rgba(30,32,36,.82)}
-[data-theme=light]{--bg:#f6f3ec;--fg:#1c1d1f;--mut:#5d6266;--card:rgba(0,0,0,.04);--bd:rgba(0,0,0,.12);--ac:#c88510;--navbg:rgba(255,255,255,.85)}
+:root{color-scheme:dark;--bg:#090d0b;--card:#0f1412;--line:#1b2a24;--tx:#f1f7f4;--mu:#8ea39a;--ac:#10b981;--wa:#f5b942;--bad:#ff6b6b}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:'Comic Sans MS','Comic Sans','Comic Neue',cursive;min-height:100vh;overflow-x:hidden}
-[dir=rtl] body{font-family:'Noto Nastaliq Urdu',serif;line-height:2.1}
-.bg{position:fixed;inset:0;z-index:-1;overflow:hidden}
-.bg:before{content:"";position:absolute;width:60vmax;height:60vmax;border-radius:50%;background:radial-gradient(circle,var(--ac),transparent 65%);opacity:.2;animation:mv 18s ease-in-out infinite alternate}
-.bg:after{content:"";position:absolute;inset:-60px;background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:60px 60px;animation:gr 12s linear infinite;opacity:.6}
-@keyframes mv{0%{top:-20%;left:-10%}100%{top:40%;left:55%}}
-@keyframes gr{to{transform:translate(60px,60px)}}
-.wrap{max-width:1000px;margin:auto;padding:0 20px}
-nav{position:sticky;top:12px;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px;padding:8px 10px;padding-inline-start:20px;border-radius:9999px;background:var(--navbg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.15);box-shadow:0 8px 30px rgba(0,0,0,.25)}
-[data-theme=light] nav{border-color:var(--bd);box-shadow:0 8px 30px rgba(0,0,0,.08)}
-.logo{font-weight:800;font-size:22px}.logo b{color:var(--ac)}
-.tools button{background:var(--card);border:1px solid var(--bd);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;margin-inline-start:8px;font:inherit;font-size:14px}
-.tag{color:var(--mut);letter-spacing:.2em;font-size:12px;text-transform:uppercase;margin-top:40px}
-h1{font-size:clamp(36px,7vw,68px);line-height:1.1;margin:12px 0;font-weight:800}
-h1 span{color:var(--ac)}
-.sub{color:var(--mut);font-size:18px;max-width:640px}
-form{display:flex;gap:10px;margin:26px 0;flex-wrap:wrap}
-input{flex:1;min-width:200px;padding:15px 18px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--fg);font:inherit;font-size:16px}
-.go{background:linear-gradient(#f3c25c,#d99a2b);color:#1a1a1a;border:0;padding:15px 26px;border-radius:12px;font-weight:700;cursor:pointer;font:inherit;font-weight:700}
-#status{color:var(--mut);margin:10px 0}
-.top{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin:30px 0 10px}
-.gauge{position:relative;width:150px;height:150px}.gauge svg{transform:rotate(-90deg)}
-.gauge .n{position:absolute;inset:0;display:grid;place-items:center;font-size:36px;font-weight:800}
-.live{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.pill{background:var(--card);border:1px solid var(--bd);padding:6px 12px;border-radius:99px;font-size:13px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0}
-.chip{background:var(--card);border:1px solid var(--bd);color:var(--fg);padding:8px 16px;border-radius:99px;cursor:pointer;font:inherit;font-size:14px}
-.chip.on{background:var(--ac);color:#1a1a1a;border-color:var(--ac);font-weight:700}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
-.grid.one{grid-template-columns:1fr}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:20px;cursor:pointer;backdrop-filter:blur(6px)}
-.card h3{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
-.badge{font-size:11px;color:var(--mut);border:1px solid var(--bd);padding:2px 8px;border-radius:99px;font-weight:400}
-.bar{height:8px;border-radius:9px;background:var(--bd);overflow:hidden;margin:10px 0}.bar i{display:block;height:100%}
-.card p{color:var(--mut);margin:8px 0}
-.card h4{margin:16px 0 2px;color:var(--ac)}
-.fc{display:flex;gap:10px;align-items:flex-end;height:120px;margin-top:10px}
-.fc div{flex:1;text-align:center;font-size:12px;color:var(--mut)}.fc i{display:block;border-radius:6px 6px 0 0;margin-bottom:4px}
-footer{color:var(--mut);font-size:13px;padding:40px 0}
-html{scroll-behavior:smooth}
-.links a{color:var(--mut);text-decoration:none;margin-inline-end:18px;font-size:14px}.links a:hover{color:var(--ac)}
-nav .links{flex:1;display:flex;justify-content:center}
-.links a{margin:0;padding:8px 14px;border-radius:9999px;transition:.2s}
-.links a:hover{background:var(--card);color:var(--ac)}
-.logo{display:flex;align-items:center}
-.lg-ic{width:30px;height:30px;border-radius:50%;background:conic-gradient(from 200deg,#e8a93a,#f3c25c,#3fb97a,#e8a93a);margin-inline-end:10px;box-shadow:0 0 12px rgba(232,169,58,.5)}
-.tools{display:flex;gap:8px}
-.tools button{margin:0;border-radius:9999px;padding:8px 16px;transition:.2s}
-.tools button:hover{border-color:var(--ac)}
-[dir=rtl] .links a{line-height:1.9}
-.gw{text-align:center}
-.bdg{display:inline-block;margin-top:10px;padding:6px 16px;border:1px solid;border-radius:99px;font-weight:700;background:var(--card)}
-@media(max-width:760px){nav{border-radius:28px;flex-wrap:wrap;padding:10px 14px}nav .links{order:3;width:100%;flex:none;overflow-x:auto;justify-content:flex-start}.links a{white-space:nowrap}}
-section{margin-top:80px}
-.sh{font-size:clamp(26px,4vw,40px);margin:0 0 6px}
-.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:60px}
-.stat{flex:1;min-width:130px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;color:var(--mut)}
-.stat b{display:block;font-size:32px;color:var(--ac)}
-.card.lc{cursor:default}
-.card.lc:hover{border-color:var(--ac)}
-details{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin:10px 0}
-summary{cursor:pointer;font-weight:600}
-.card ul{margin:10px 0;padding-inline-start:22px}.card li{margin:8px 0;line-height:1.5}
-.adv{display:grid;gap:10px;margin:18px 0}
-.al{padding:14px 18px;border-radius:12px;border:1px solid var(--bd);border-inline-start:6px solid;background:var(--card)}
-.al.r{border-inline-start-color:#e5484d}.al.o{border-inline-start-color:#f08a3c}.al.y{border-inline-start-color:#e8c23a}.al.g{border-inline-start-color:#3fb97a}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
-.cv{position:relative;height:300px}
-[dir=rtl] body{line-height:2.3}
-[dir=rtl] h1,[dir=rtl] .sh{line-height:2.4;padding:.15em 0;margin-block:.2em}
-[dir=rtl] h2,[dir=rtl] h3,[dir=rtl] h4,[dir=rtl] p,[dir=rtl] li,[dir=rtl] summary,[dir=rtl] .sub,[dir=rtl] .al,[dir=rtl] .pill,[dir=rtl] .stat,[dir=rtl] .tag{line-height:2.3}
-[dir=rtl] .tag{letter-spacing:0;text-transform:none}
-[dir=rtl] .card p{margin:10px 0}
-[dir=rtl] .card h4{margin:20px 0 4px}
-[dir=rtl] .card li{margin:10px 0}
-[dir=rtl] .chip,[dir=rtl] .pill,[dir=rtl] .tools button,[dir=rtl] .go{line-height:1.9;padding-block:10px}
-[dir=rtl] .gauge .n,[dir=rtl] .stat b{line-height:1.3}
-:is([id]){scroll-margin-top:100px}
-.tx{flex:1;min-width:260px}
-.rk{display:grid;grid-template-columns:130px 1fr 46px;gap:12px;align-items:center;cursor:pointer;padding:6px 0}
-.rk:hover span{color:var(--ac)}.rk .bar{margin:0}
-@media print{.bg,nav,form,#tags,.chips,#more,footer,button,.links{display:none!important}
-html[data-theme]{--fg:#000;--mut:#333;--card:#fff;--bd:#bbb;--bg:#fff}
-.card,.al,.top{break-inside:avoid}}
+body{margin:0;background:radial-gradient(ellipse at 50% 100%,#0c2a20 0,var(--bg) 60%);background-attachment:fixed;color:var(--tx);font:15px/1.55 Inter,system-ui,sans-serif}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+main{position:relative;z-index:1;max-width:1120px;margin:auto;padding:28px 16px 80px}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.05;margin:36px 0 12px;font-weight:800;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--ac)}
+.sub{color:var(--mu);max-width:600px;margin:0 0 28px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+nav button,.btn{background:var(--card);border:1px solid var(--line);color:var(--tx);padding:10px 18px;border-radius:12px;font:inherit;font-weight:500;cursor:pointer}
+nav button.on,.btn.pri{background:var(--ac);color:#06210f;border-color:var(--ac);font-weight:700}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.card{background:rgba(17,28,24,.85);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1;min-width:180px;background:#0c1613;border:1px solid var(--line);color:var(--tx);padding:11px 14px;border-radius:12px;font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+.k{background:#0c1613;border:1px solid var(--line);border-radius:14px;padding:14px}
+.k b{display:block;font-size:26px;font-weight:800}.k span{color:var(--mu);font-size:13px}
+.g{color:var(--ac)}.y{color:var(--wa)}.r{color:var(--bad)}
+canvas.v{max-width:100%;border-radius:14px;border:1px solid var(--line)}
+.note{color:var(--mu);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+code{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}
+a{color:var(--ac)}
+section{display:none}section.on{display:block}
+.sm{padding:6px 12px;font-size:13px}
+.warn{border-left:4px solid var(--wa);padding:10px 14px;background:#1d1a0c;border-radius:10px;margin-top:14px}
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.plan div{background:#0c1613;border:1px solid var(--line);border-radius:14px;padding:14px}
+select{background:#0c1613;border:1px solid var(--line);color:var(--tx);padding:10px 12px;border-radius:12px;font:inherit}
+[dir=rtl] body{font-family:"Noto Nastaliq Urdu",Inter,sans-serif;line-height:2.1}
+.sm.on{background:var(--ac);color:#06210f;border-color:var(--ac)}
+[dir=rtl] .k b{line-height:1.5}[dir=rtl] .btn,[dir=rtl] nav button{line-height:1.9}
+[dir=rtl] th,[dir=rtl] td{text-align:right;line-height:1.9;padding:12px 6px}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+.top{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(9,13,11,.7);border-bottom:1px solid var(--line)}
+.bar{max-width:1120px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:16px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px;color:var(--tx);font-weight:700;text-decoration:none}
+.links{display:flex;gap:22px}.links a{color:var(--mu);text-decoration:none;font-size:14px}.links a:hover{color:var(--ac)}
+.acts{display:flex;gap:10px;align-items:center}
+.cta-s{background:var(--ac);color:#04140c;font-weight:700;border-radius:999px;padding:9px 20px;text-decoration:none;display:inline-block}.cta-s:hover{background:#34d399}
+.cta-s.big,.ghost{padding:13px 26px}
+.ghost{border:1px solid var(--line);color:var(--tx);border-radius:999px;text-decoration:none;background:rgba(15,20,18,.6)}
+.pill{display:inline-block;background:rgba(6,78,59,.45);border:1px solid rgba(16,185,129,.3);color:#34d399;border-radius:999px;padding:5px 12px;font-size:12px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;padding:20px 0 50px}
+.hero .row{gap:12px}
+.mets{display:flex;gap:26px;flex-wrap:wrap;margin-top:30px}.mets b{display:block;font-size:20px}.mets span{color:var(--mu);font-size:12px}
+.stack{position:relative;min-height:380px}
+.fc{position:absolute;width:78%;background:rgba(15,20,18,.78);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.4);animation:fl 6s ease-in-out infinite}
+.fc small{color:var(--mu);display:block}.fc b{font-size:22px;display:block}
+.f1{top:0;left:0}.f2{top:120px;right:0;animation-delay:-2s}.f3{top:240px;left:6%;animation-delay:-4s}
+@keyframes fl{50%{transform:translateY(-8px)}}
+.blk{padding:36px 0}.blk h2{font-size:clamp(26px,4vw,38px);margin:10px 0 22px;letter-spacing:-.01em}
+.bento{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.bento div{background:rgba(15,20,18,.6);border:1px solid var(--line);border-radius:18px;padding:20px;transition:.25s}
+.bento div:hover{border-color:rgba(16,185,129,.5);box-shadow:0 0 30px rgba(16,185,129,.12)}
+.bento b{display:block;margin:8px 0 4px}.bento p{margin:0;color:var(--mu);font-size:14px}
+.stp{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:s;margin:8px 0 24px}
+.stp::before,.stp::after{content:"";position:absolute;top:19px;left:12.5%;height:2px;background:var(--line)}
+.stp::before{right:12.5%}.stp::after{width:calc(75% * var(--p,0));background:var(--ac);transition:width .4s}
+.stp button{position:relative;background:none;border:0;padding:0;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;text-align:center}
+.stp button::before{counter-increment:s;content:counter(s);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:2px solid var(--line);font-weight:700;z-index:1}
+.stp button.on{background:none;color:var(--tx)}
+.stp button.on::before,.stp button.done::before{border-color:var(--ac);background:var(--ac);color:#04140c}
+.banner{background:linear-gradient(90deg,#10b981,#2dd4bf);border-radius:28px;padding:44px 28px;text-align:center;color:#04140c;margin-top:40px}
+.banner h2{margin:0 0 18px;font-size:clamp(24px,4vw,36px)}
+.banner a{background:#fff;color:#04140c;font-weight:700;border-radius:999px;padding:13px 28px;text-decoration:none;display:inline-block}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.links a,.btn,.cta-s,.ghost,.pill,.brand{white-space:nowrap}
+.bar{flex-wrap:nowrap}
+.cta-s,.ghost{display:inline-flex;align-items:center;gap:8px;flex-shrink:0}
+.ar{display:inline-block}
+[dir=rtl] .ar{transform:scaleX(-1)}
+[dir=rtl] h1{font-size:clamp(26px,4.2vw,46px);line-height:2.3;font-weight:700;letter-spacing:0;padding:8px 0;margin:20px 0 4px}
+[dir=rtl] h2{line-height:2.1;letter-spacing:0;padding:4px 0}
+[dir=rtl] h3{line-height:2}
+[dir=rtl] .sub,[dir=rtl] .note,[dir=rtl] p{line-height:2;letter-spacing:0}
+[dir=rtl] .sub{font-size:15px;padding-top:8px}
+[dir=rtl] .fc b,[dir=rtl] .mets b{line-height:1.7}
+[dir=rtl] .pill{line-height:2}
+[dir=rtl] .hero{padding:32px 0 56px}
+[dir=rtl] .blk{padding:44px 0}
+@media(max-width:1023px){.links{display:none}}
+@media(max-width:820px){.bar{overflow-x:auto;gap:10px}.acts{flex-shrink:0}}
+[dir=rtl] .stp::after{left:auto;right:12.5%}
+#jt button{white-space:nowrap}
+.jvis{height:130px;display:grid;place-items:center;margin-bottom:4px}
+.jvis svg{height:120px;width:auto;overflow:visible;animation:pop .6s ease}
+@keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+.jbody{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin-top:8px}
+.jl h3{font-size:26px;margin:10px 0 8px}.jl p{color:var(--mu);margin:0 0 18px}
+.glass{background:rgba(15,20,18,.75);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;padding:22px;min-height:240px;animation:pop .5s ease}
+.chip{display:inline-block;white-space:nowrap;background:rgba(6,78,59,.45);border:1px solid rgba(16,185,129,.3);color:#34d399;border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;margin:3px 4px 3px 0}
+button.chip{cursor:pointer}button.chip.on{background:var(--ac);color:#04140c}
+.chip.w{background:rgba(120,53,15,.4);border-color:rgba(245,158,11,.4);color:#fbbf24}
+.leafm{height:96px;border-radius:12px;margin:12px 0;background:radial-gradient(circle at 25% 45%,#7a4a1e 0 26px,transparent 27px),radial-gradient(circle at 58% 55%,#6b3f1a 0 32px,transparent 33px),radial-gradient(circle at 82% 35%,#7a4a1e 0 22px,transparent 23px),#3f8f3a;transition:.3s}
+.leafm.mask{background:radial-gradient(circle at 25% 45%,#fff 0 26px,transparent 27px),radial-gradient(circle at 58% 55%,#fff 0 32px,transparent 33px),radial-gradient(circle at 82% 35%,#fff 0 22px,transparent 23px),#000}
+.gauge{height:12px;background:#0c1613;border-radius:99px;overflow:hidden;margin:10px 0 14px}
+.gauge i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#2dd4bf);border-radius:99px;animation:gw 1s ease}
+@keyframes gw{from{width:0}}
+.jbar{height:3px;background:var(--line);border-radius:3px;margin-top:26px;overflow:hidden}.jbar i{display:block;height:100%;width:0;background:var(--ac)}
+.pulse{animation:pl 2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{50%{transform:scale(1.15);opacity:.7}}
+.laser{animation:sw 1.6s ease-in-out infinite alternate}
+@keyframes sw{to{transform:translateX(88px)}}
+.bar4{transform-box:fill-box;transform-origin:bottom;animation:rise 1.4s ease-in-out infinite alternate}
+@keyframes rise{from{transform:scaleY(.4)}}
+@media(max-width:820px){.jbody{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.pulse,.laser,.bar4,.glass,.jvis svg,.gauge i{animation:none}}
+@media(prefers-reduced-motion:reduce){.fc{animation:none}}
+@media(prefers-reduced-motion:reduce){#bg{display:none}}
+#how section{display:block;position:relative;margin-bottom:48px;padding-inline-start:36px;border-inline-start:2px solid var(--line)}
+#how section::before{content:"";position:absolute;top:6px;inset-inline-start:-9px;width:16px;height:16px;border-radius:50%;background:var(--ac);box-shadow:0 0 0 5px rgba(16,185,129,.18)}
+.sh{margin-bottom:16px}.sh h3{font-size:clamp(22px,3vw,28px);line-height:1.25;margin:10px 0 8px}
+.sh p{color:var(--mu);margin:0;max-width:640px;white-space:normal}
+.pillbox{display:flex;align-items:center;gap:6px;background:#0c1613;border:1px solid var(--line);border-radius:16px;padding:6px}
+.pillbox:focus-within{border-color:var(--ac)}
+.pillbox input[type=text]{border:0;background:transparent;flex:1;min-width:0;padding:10px 12px}
+.pillbox input:focus-visible{outline:none}
+.pillbox .btn{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.spin{width:14px;height:14px;border:2px solid rgba(4,20,12,.3);border-top-color:#04140c;border-radius:50%;animation:rot .7s linear infinite}
+.spin[hidden]{display:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+#t-ledger .card{overflow-x:auto}
+@media(max-width:820px){#how section{padding-inline-start:22px}}
+.banner{max-width:64rem;margin:64px auto;padding:48px 24px;border-radius:24px;box-shadow:0 25px 50px -12px rgba(16,185,129,.1)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:12px;padding:26px 16px;border:2px dashed rgba(16,185,129,.4);border-radius:20px;color:var(--mu);cursor:pointer;text-align:center;position:relative;transition:.2s}
+.drop:hover,.drop.over,.drop:focus-within{border-color:var(--ac);background:rgba(16,185,129,.06);color:var(--tx)}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#t-ledger .btn,#runAudit{border-radius:999px}
+.btn.gh{background:transparent}
+.chip.on{background:var(--ac);color:#04140c}
+.demo{margin-bottom:12px;color:var(--mu);font-size:14px}
+.empty{text-align:center;color:var(--mu);padding:28px 6px}
+tr.bad td{background:rgba(255,107,107,.08);border-top:1px solid var(--bad);border-bottom:1px solid var(--bad)}
+.warn.r{border-left-color:var(--bad);background:#1f1010}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.cmp>div{border:1px solid var(--line);border-radius:18px;padding:20px;background:rgba(15,20,18,.6)}
+.cmp .new{border-color:rgba(16,185,129,.5);box-shadow:0 0 30px rgba(16,185,129,.12)}
+.cmp small{color:var(--mu)}.cmp b{display:block;font-size:22px;margin:6px 0 10px}.cmp .new b{color:var(--ac)}.cmp p{margin:4px 0;color:var(--mu)}
+@media(max-width:700px){.cmp{grid-template-columns:1fr}}
+button.cta-s{border:0;font:inherit;font-weight:700;cursor:pointer}#demo1{white-space:normal;text-align:center}
+#tel{margin:0}@media(max-width:820px){#tel{display:none}}
+.gwrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.gwrap svg circle.arc{animation:gaug 1s ease}@keyframes gaug{from{stroke-dashoffset:339.3}}
+.mx{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:16px}
+.mc{background:#0c1613;border:1px solid var(--line);border-radius:14px;padding:12px}.mc.na{border-style:dashed;opacity:.7}
+.mc small{color:var(--mu);display:block}.sc{float:right;font-weight:800}
+.mbar{height:6px;background:#1b2e24;border-radius:9px;overflow:hidden;margin:8px 0}.mbar i{display:block;height:100%}
+.sub2{background:#0c1613;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.wb{display:grid;grid-template-columns:56px 1fr 56px;gap:10px;align-items:center;margin:6px 0}
+.mc[data-pc]{cursor:pointer;transition:.2s}.mc[data-pc]:hover{border-color:rgba(16,185,129,.5)}
+#mdl{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:16px}#mdl[hidden]{display:none}
+.mbox{max-width:560px;max-height:85vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+.mbox h4{margin:14px 0 4px;color:var(--ac)}.mbox ul{margin:0;padding-inline-start:20px;color:var(--mu)}.mbox p{color:var(--mu);margin:0}
+#qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}#qchips .chip{white-space:normal;cursor:pointer}
+html:not([dir=rtl]) .hero h1{font-size:30px;line-height:1.2;font-weight:700;letter-spacing:-.025em;color:#fff;margin:16px 0 0}
+html:not([dir=rtl]) .hero .sub{font-size:16px;line-height:1.625;max-width:36rem;margin:16px 0 0}
+@media(min-width:640px){html:not([dir=rtl]) .hero h1{font-size:36px;line-height:1.15}html:not([dir=rtl]) .hero .sub{font-size:18px}}
+@media(min-width:1024px){html:not([dir=rtl]) .hero h1{font-size:48px;line-height:1.1}}
+.hero .pill{background:rgba(2,44,34,.6);border-color:rgba(6,95,70,.5);color:#34d399;padding:4px 12px}
+.hero{gap:40px;padding:64px 0}
+@media(min-width:768px){.hero{padding:96px 0}}
+@media(min-width:1024px){.hero{gap:64px}}
+.hero .row{margin-top:32px;gap:12px}
+.hero .ghost{color:var(--mu);background:transparent}.hero .ghost:hover{color:var(--tx);border-color:rgba(16,185,129,.4)}
+.demo-pill{margin-top:24px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12px;font-weight:500;color:#6ee7b7;background:rgba(2,44,34,.4);border:1px solid rgba(16,185,129,.2);padding:6px 14px;border-radius:999px;cursor:pointer;transition:.2s;text-align:start}
+.demo-pill:hover{border-color:rgba(16,185,129,.4);background:rgba(2,44,34,.6)}.demo-pill:disabled{opacity:.6;cursor:wait}
+.mets{margin-top:36px}
+.stack{display:flex;flex-direction:column;gap:16px;min-height:0}
+.fc{position:static;width:100%;padding:24px;animation:none}
+.f1,.f2,.f3{top:auto;left:auto;right:auto}
+.fc span{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.06)}
+.fc span.r{background:rgba(255,92,92,.14)}.fc span.y{background:rgba(245,185,66,.14)}
 </style>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e8a93a'/%3E%3Cpath d='M16 46C16 28 28 16 48 16c0 20-12 32-28 32z' fill='%23fff'/%3E%3Cpath d='M20 44L40 24' stroke='%23e8a93a' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Cpath d='M8 54h20M14 59h14' stroke='%23fff' stroke-width='3' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="bg"></div>
-<div class="wrap">
-  <nav>
-    <div class="logo"><i class="lg-ic"></i>City<b>Air</b></div>
-    <div class="links"></div>
-    <div class="tools"><button id="lg">اردو</button><button id="th">Light</button></div>
-  </nav>
-  <div class="tag" data-t="tag"></div>
-  <h1 id="h1"></h1>
-  <p class="sub" data-t="sub"></p>
-  <form id="f"><input id="q" autocomplete="off"><input id="q2" autocomplete="off"><button class="go" data-t="btn"></button><button type="button" class="chip" id="loc"></button></form>
-  <div class="chips" id="tags"></div>
-  <div id="status"></div>
-  <div id="out"></div>
-  <div id="more"></div>
-  <footer data-t="foot"></footer>
+<canvas id="bg"></canvas>
+<div id="mdl" hidden><div class="mbox" role="dialog" aria-modal="true"><button class="btn sm" id="mclose" style="float:inline-end" aria-label="Close">✕</button><div id="mbody"></div></div></div>
+<header class="top"><div class="bar"><a class="brand" href="#top"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 12-4 16-9 16z"/><path d="M4 21c3-6 6-9 11-12"/></svg>ClimaSphere AI</a>
+<div class="links"><a href="#features">Features</a><a href="#journey">How it works</a><a href="#how" data-go="crop">Crop scanner</a><a href="#how" data-go="ledger">Ledger explorer</a></div>
+<div class="acts"><span class="chip" id="tel">Telemetry: idle</span><button class="btn sm" id="lang">EN / اردو</button><a class="cta-s" href="#how" data-go="air">Audit Climate <span class="ar">→</span></a></div></div></header>
+<main>
+<div class="hero" id="top"><div>
+<span class="pill">• AI-powered parametric climate ledger</span>
+<h1 data-i="h1">Climate evidence you can <em>verify on-chain.</em></h1>
+<p class="sub" data-i="sub">Real-time weather telemetry, AI-assisted foliage risk scans and automated eligibility certificates anchored to a tamper-proof public blockchain.</p>
+<div class="row"><a class="cta-s big" href="#how" data-go="air">Check live data <span class="ar">→</span></a><a class="ghost" href="#how" data-go="ledger">View public ledger</a></div>
+<button class="demo-pill" id="demo1" data-i="demo1">⚡ Run Complete End-to-End Audit (1-Click Demo)</button>
+<div class="mets"><div><b>SHA-256</b><span>Verifiable hashes</span></div><div><b>Live</b><span>Open-Meteo telemetry</span></div><div><b>Instant</b><span>Payout eligibility check</span></div></div></div>
+<div class="stack"><div class="fc f1"><small>City and climate index</small><b>Lahore · 41°C</b><span class="r">Severe heatwave alert</span></div>
+<div class="fc f2"><small>AI crop scanner</small><b>Foliage damage 68%</b><span class="y">Stress detected</span></div>
+<div class="fc f3"><small>Parametric payout</small><b class="g">Smart contract triggered</b><span>Certificate anchored</span></div>
+<p class="note" style="margin:0">Illustrative preview, not live data.</p></div></div>
+<div class="blk" id="features"><span class="pill">Features</span><h2>Everything required for automated climate coverage</h2><div class="bento"><div><span aria-hidden="true">🌦️</span><b>Real-time telemetry</b><p>Live AQI, PM2.5, ozone, temperature and humidity for any city from Open-Meteo.</p></div><div><span aria-hidden="true">🍃</span><b>Computer vision crop scan</b><p>HSV segmentation measures leaf damage in your browser, with overlay and mask views.</p></div><div><span aria-hidden="true">📉</span><b>Parametric loss model</b><p>Threshold rules turn damage, humidity and ozone into a yield-loss estimate and a trust score.</p></div><div><span aria-hidden="true">⚡</span><b>Instant eligibility trigger</b><p>The payout rule runs automatically, so there is no claim paperwork to file.</p></div><div><span aria-hidden="true">🔗</span><b>Immutable proof</b><p>SHA-256 chained blocks anchored on Polygon Amoy, with hash verification and a tamper test.</p></div><div><span aria-hidden="true">🌐</span><b>Bilingual Urdu RTL mode</b><p>One-click English and Urdu interface for regional accessibility.</p></div></div><div class="cmp"><div><small>Traditional claims</small><b>Weeks to months</b><p>Surveyor visits needed</p><p>Paperwork dependent</p></div><div class="new"><small>ClimaSphere parametric</small><b>Seconds after data is in</b><p>Weather data and leaf photo cross-checked</p><p>No claim paperwork</p></div></div><p class="note">Qualitative comparison. Real payout times depend on the insurer and local rules.</p></div>
+<div class="blk" id="journey"><span class="pill">How it works</span><h2>From raw data to a verifiable certificate</h2>
+<div class="jvis" id="jv" aria-hidden="true"></div>
+<div class="stp" id="jt"><button data-j="0">Ingest</button><button data-j="1">Scan</button><button data-j="2">Audit</button><button data-j="3">Anchor</button></div>
+<div class="jbody"><div class="jl" id="jl"></div><div class="glass" id="jp"></div></div>
+<div class="jbar"><i id="jb"></i></div></div>
+<div class="blk" id="how"><span class="pill">Try it live</span><h2>Run the real pipeline yourself</h2>
+
+
+<section id="t-air" class="on"><div class="sh" id="step-1"><span class="pill" data-i="b1">Step 01</span><h3 data-i="s1"></h3><p data-i="d1"></p></div><div class="card">
+<div class="demo">Need a quick demo? Live location presets: <button class="chip" data-loc="multan">🔥 Multan (Pakistan)</button><button class="chip" data-loc="ecuador">🍌 Banana belt (Ecuador)</button><button class="chip" data-loc="antalya">🍅 Antalya (Turkey)</button><button class="chip" data-geo>📍 Use my location</button></div><div class="demo">Cities: <button class="chip" data-city="Lahore">Lahore</button><button class="chip" data-city="Karachi">Karachi</button><button class="chip" data-city="Istanbul">Istanbul</button><button class="chip" data-city="New York">New York</button><button class="chip" data-city="Delhi">Delhi</button><button class="chip" data-city="Kasur">Kasur</button><button class="chip" data-city="London">London</button><button class="chip" data-city="Multan">Multan</button></div><div class="pillbox"><input id="city" type="text" value="Lahore" aria-label="City"><button class="btn pri" id="goAir"><span class="spin" hidden></span><span data-i="go">Check city</span></button></div>
+<p class="note" id="airMsg">Live data from Open-Meteo. Enter any city.</p>
+<div class="kpis" id="airK"></div><div id="stoma"></div><div id="eco"></div></div></section>
+
+<section id="t-crop"><div class="sh" id="step-2"><span class="pill" data-i="b2">Step 02</span><h3 data-i="s2"></h3><p data-i="d2"></p></div><div class="card">
+<div class="row"><select id="crop" aria-label="Crop"><option value="banana">Banana</option><option value="tomato">Tomato</option><option value="potato">Potato</option><option value="wheat">Wheat</option><option value="other">General foliage</option></select>
+<button class="btn" id="smp" data-i="smp">Load infected sample</button><button class="btn" id="smpH" data-i="smpH">Load healthy leaf</button></div><label class="drop" id="drop"><input id="file" type="file" accept="image/*" aria-label="Leaf photo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Drop crop leaf image or browse</span></label>
+<p class="note">Pick a crop, load a sample or upload a close photo of one leaf. Brown and yellow tissue counts as damage. Everything runs in your browser. This is HSV-based image analysis of visible discoloration. It cannot identify a specific disease, so confirm with a local agriculture expert.</p>
+<div class="row" id="views" style="margin-top:12px"><button class="btn sm" data-v="ov" data-i="v1">Diagnostic overlay</button><button class="btn sm" data-v="mk" data-i="v2">Lesion mask</button><button class="btn sm" data-v="rw" data-i="v3">Raw photo</button></div>
+<canvas id="cv" class="v" hidden></canvas>
+<div class="kpis" id="cropK"></div></div></section>
+
+<section id="t-loss"><div class="sh" id="step-3"><span class="pill" data-i="b3">Step 03</span><h3 data-i="s3"></h3><p data-i="d3"></p></div><div class="demo">Need a quick demo? Select a preset: <button class="chip" data-p="heat">🔥 Multan heatwave scenario</button><button class="chip" data-p="wheat">🌱 Normal wheat crop, Kasur</button></div><div class="card" id="lossBox"><p class="note">Run the air check and the crop scan first.</p></div>
+<div class="card" id="copilot"><h3 data-i="cp1">Agronomist co-pilot</h3><p class="note" data-i="cp2">Pre-written expert guidance, not a live AI.</p><div id="qchips"></div><div class="pillbox" style="margin-top:10px"><input id="q" type="text" aria-label="Question"><button class="btn pri" id="ask" data-i="ask">Ask</button></div><div id="ans"></div></div></section>
+
+<section id="t-ledger"><div class="sh" id="step-4"><span class="pill" data-i="b4">Step 04</span><h3 data-i="s4"></h3><p data-i="d4"></p></div><div class="card">
+<div class="row" style="margin-bottom:12px"><span class="chip" id="net">Target network: Polygon Amoy Testnet (Chain ID 80002)</span><a id="ctr" class="note" target="_blank" rel="noopener" hidden>View contract on Polygonscan</a></div>
+<div class="row"><button class="btn pri" id="mk" data-i="mk">Create certificate block</button><button class="btn gh" id="anc" data-i="anc">Anchor last block on Polygon Amoy</button><button class="btn gh" id="tam" data-i="tam">Run tamper test</button><button class="btn gh" id="cert" data-i="cert">Download certificate</button></div>
+<p class="note" id="lMsg">Each block stores the hash of the previous one. Any edit breaks the chain.</p>
+<table><thead><tr><th>#</th><th data-i="c1">City</th><th data-i="c2">Damage</th><th data-i="c3">Trust</th><th data-i="c4">Payout</th><th data-i="c5">Hash</th><th data-i="c6">On-chain</th><th></th></tr></thead><tbody id="rows"></tbody></table><p class="note">This ledger is stored in your browser. Anyone controlling it could rewrite and recompute it, so only an on-chain anchor gives an independent timestamp.</p>
 </div>
+<div class="card"><div class="row"><input id="vh" type="text" placeholder="Paste a block hash to verify"><button class="btn" id="vb" data-i="vb">Verify hash</button></div><p id="vr" class="note"></p>
+<textarea id="vc" rows="4" aria-label="Certificate JSON" placeholder="Paste a downloaded certificate (JSON) to verify" style="width:100%;margin-top:12px;background:#0c1613;border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:10px;font:12px ui-monospace,monospace"></textarea>
+<div class="row" style="margin-top:8px"><button class="btn gh" id="vcb" style="border-radius:999px">Verify certificate</button></div><p id="vcr" class="note"></p></div></section></div>
+<div class="banner"><h2>Ready to verify agricultural climate risk?</h2><a href="#how" data-go="air">Start Verification <span class="ar">→</span></a></div>
+<p class="note" style="text-align:center;margin-top:28px">ClimaSphere AI · IEEE ClimateChain Global Hackathon 2026 · Testnet prototype, not a production insurance product.</p>
+</main>
+
 <script>
-const T={
-en:{tag:'Free pollution checker for any city',h1:'How clean is your <span>city</span>?',sub:'Type any city to see air, water, heat, land, noise, light and radioactive pollution, what harm it does, and a 5-year outlook, in simple words.',btn:'Check city',ph:'Enter a city, e.g. Lahore',load:'Checking... this takes a few seconds',all:'All',overall:'Overall pollution',causes:'Why it happens',harm:'Why it is harmful',fc:'Next 5 years (higher = worse)',tip:'What you can do',live:'Live data',est:'AI estimate',aqi:'Air quality index',temp:'Temperature',foot:'Air and temperature are live data. Water, land, noise, light and radiation are AI estimates, not official measurements.',light:'Light',dark:'Dark',tap:'Tap a card for details',out:'What may happen in the next 5 years',steps:'Steps to improve it',ld:'Loading details...',ph2:'Compare with (optional)',loc:'📍 Use my location',rad:'All 7 pollutions at a glance',hist:'Air quality: last 7 days',dl:'Download report (PDF)',share:'Share',top:'Biggest problems',cig:'Cigarettes a day (like breathing this air)',who:'Times the WHO daily PM2.5 limit',best:'Best time to go out',worst:'Avoid going out',pol:'Which pollutant is the problem?',feels:'Feels like',
-note:'Cigarette and WHO numbers are simple estimates from the current PM2.5 (about 22 µg/m³ = 1 cigarette a day; WHO daily guideline 15 µg/m³).',main:n=>`Main pollutant now: ${n}. Bars over 100% are above the WHO daily guideline.`,cleaner:'is cleaner overall',up:'Going up: getting worse',dn:'Going down: getting better',fl:'Staying about the same',
-hn:(p,d)=>d>5?`Today's air is ${p}% worse than the average of the last 6 days.`:d<-5?`Today's air is ${p}% better than the average of the last 6 days.`:`Today's air is about the same as the last 6 days.`,
-adv:{noout:'🚫 Not safe outside today for children, old people and sick people. Please stay indoors.',mask:'😷 Wear a mask today if you go outside.',water:'💧 Boil the water before you drink it.',heat:'🥵 Very hot today. Drink more water and avoid the midday sun.',noise:'🔊 Very noisy. Protect your ears and your sleep.',ok:'✅ Things look fine today. Enjoy the outdoors.'},
-n:{air:'Air',water:'Water',thermal:'Thermal',land:'Land',noise:'Noise',light:'Light',radioactive:'Radioactive'}},
-ur:{tag:'کسی بھی شہر کی آلودگی چیک کریں',h1:'آپ کا <span>شہر</span> کتنا صاف ہے؟',sub:'کسی بھی شہر کا نام لکھیں اور ہوا، پانی، حرارت، زمین، شور، روشنی اور تابکاری کی آلودگی، اس کے نقصانات اور اگلے 5 سال کا اندازہ آسان الفاظ میں دیکھیں۔',btn:'شہر چیک کریں',ph:'شہر کا نام لکھیں، مثلاً لاہور',load:'چیک ہو رہا ہے... چند سیکنڈ لگیں گے',all:'سب',overall:'مجموعی آلودگی',causes:'یہ کیوں ہوتی ہے',harm:'نقصانات',fc:'اگلے 5 سال (زیادہ = بدتر)',tip:'آپ کیا کر سکتے ہیں',live:'لائیو ڈیٹا',est:'AI اندازہ',aqi:'ہوا کا معیار',temp:'درجہ حرارت',foot:'ہوا اور درجہ حرارت لائیو ڈیٹا ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، سرکاری پیمائش نہیں۔',light:'لائٹ',dark:'ڈارک',tap:'تفصیل کے لیے کارڈ دبائیں',out:'اگلے 5 سال میں کیا ہو سکتا ہے',steps:'بہتری کے اقدامات',ld:'تفصیل لوڈ ہو رہی ہے...',ph2:'موازنے کے لیے شہر (اختیاری)',loc:'📍 میرا مقام',rad:'ساتوں آلودگیاں ایک نظر میں',hist:'ہوا کا معیار: پچھلے 7 دن',dl:'رپورٹ ڈاؤن لوڈ کریں (PDF)',share:'شیئر کریں',top:'سب سے بڑے مسائل',cig:'روزانہ سگریٹ کے برابر (اس ہوا میں سانس لینا)',who:'WHO کی روزانہ PM2.5 حد کا کتنا گنا',best:'باہر جانے کا بہترین وقت',worst:'باہر جانے سے بچیں',pol:'کون سی آلودگی مسئلہ ہے؟',feels:'محسوس ہوتا ہے',
-note:'سگریٹ اور WHO کے نمبر موجودہ PM2.5 سے سادہ اندازے ہیں (تقریباً 22 µg/m³ = روزانہ 1 سگریٹ؛ WHO کی روزانہ حد 15 µg/m³)۔',main:n=>`اس وقت سب سے زیادہ: ${n}۔ 100% سے اوپر والے بار WHO کی روزانہ حد سے زیادہ ہیں۔`,cleaner:'مجموعی طور پر زیادہ صاف ہے',up:'بڑھ رہی ہے: حالات خراب ہو رہے ہیں',dn:'کم ہو رہی ہے: حالات بہتر ہو رہے ہیں',fl:'تقریباً ویسی ہی رہے گی',
-hn:(p,d)=>d>5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% زیادہ خراب ہے۔`:d<-5?`آج کی ہوا پچھلے 6 دن کی اوسط سے ${p}% بہتر ہے۔`:`آج کی ہوا پچھلے 6 دن جیسی ہی ہے۔`,
-adv:{noout:'🚫 آج بچوں، بزرگوں اور بیمار لوگوں کے لیے باہر جانا محفوظ نہیں۔ گھر کے اندر رہیں۔',mask:'😷 باہر جائیں تو آج ماسک ضرور پہنیں۔',water:'💧 پانی ابال کر پئیں۔',heat:'🥵 آج بہت گرمی ہے۔ زیادہ پانی پئیں اور دوپہر کی دھوپ سے بچیں۔',noise:'🔊 شور بہت زیادہ ہے۔ اپنے کانوں اور نیند کا خیال رکھیں۔',ok:'✅ آج حالات ٹھیک ہیں۔ باہر کا لطف اٹھائیں۔'},
-n:{air:'ہوا',water:'پانی',thermal:'حرارتی',land:'زمین',noise:'شور',light:'روشنی',radioactive:'تابکاری'}}};
-const K=['air','water','thermal','land','noise','light','radioactive'];
-let lang='en',data=null,sel='all',det={},data2=null,CH={};
-const ul=(a,raw)=>'<ul>'+(a||[]).map(z=>'<li>'+(raw?z:esc(z))+'</li>').join('')+'</ul>';
-const $=s=>document.querySelector(s);
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const col=s=>s<25?'#3fb97a':s<50?'#e8c23a':s<75?'#f08a3c':'#e5484d';
-const C={
-en:{nv:['Check city','Why it matters','How it works','FAQ'],ls:'What every person should know about each type of pollution',
-rk:['Pakistan live ranking','Cities sorted by air quality right now. Tap a city to check it.'],st:[['7','Pollution types'],['Live','Air data'],['2','Languages'],['Free','To use']],
-l:{air:'Dirty air carries tiny particles (PM2.5) deep into your lungs and blood. It causes asthma, heart disease and shorter life, and children and the elderly suffer most.',
-water:'Unsafe water spreads diarrhea, typhoid and cholera, and poisons crops and fish. Water pollution is often invisible and has no smell.',
-thermal:'Heat from cities, factories and power plants warms air and water. It causes heatstroke, higher power bills and kills river life.',
-land:'Waste, chemicals and plastic in soil poison the food we grow and the groundwater below. Polluted land stays harmful for years.',
-noise:'Constant loud noise raises stress and blood pressure, ruins sleep and can damage hearing and children\'s learning.',
-light:'Too much night lighting disrupts sleep, confuses birds and insects, and hides the stars.',
-radioactive:'Radiation from waste or accidents can cause cancer and damage DNA. Normal city levels are low, but safe storage of waste matters.'},
-h:[['Type a city','Enter any city in the world.'],['We fetch live data','Air quality and temperature come live from Open-Meteo.'],['AI explains it','Gemini estimates the rest and explains it in simple words, in English or Urdu.']],
-f:[['Is the data real?','Air quality and temperature are live. Water, land, noise, light and radiation are AI estimates, so treat them as a guide, not an official measurement.'],
-['What does the score mean?','0 is very clean and 100 is very polluted. Green is safe, yellow is moderate, orange is unhealthy and red is dangerous.'],
-['How is the 5-year forecast made?','The AI projects each score from current conditions and general trends. It is an informed guess, not a promise.'],
-['What can I do?','Wear a mask on bad air days, save electricity and water, never burn waste, plant trees and report pollution to the local authorities.']]},
-ur:{nv:['شہر چیک کریں','یہ کیوں اہم ہے','یہ کیسے کام کرتا ہے','سوالات'],ls:'ہر قسم کی آلودگی کے بارے میں ہر شخص کو کیا جاننا چاہیے',
-rk:['پاکستان کا لائیو درجہ','شہر اس وقت ہوا کے معیار کے لحاظ سے۔ کسی شہر پر دبائیں۔'],st:[['7','آلودگی کی اقسام'],['لائیو','ہوا کا ڈیٹا'],['2','زبانیں'],['مفت','استعمال کے لیے']],
-l:{air:'آلودہ ہوا کے باریک ذرات (PM2.5) پھیپھڑوں اور خون تک پہنچ جاتے ہیں۔ اس سے دمہ، دل کی بیماری اور عمر میں کمی ہوتی ہے، اور بچے اور بزرگ سب سے زیادہ متاثر ہوتے ہیں۔',
-water:'ناصاف پانی سے اسہال، ٹائیفائیڈ اور ہیضہ پھیلتا ہے اور فصلیں اور مچھلیاں بھی زہریلی ہو جاتی ہیں۔ پانی کی آلودگی اکثر نظر نہیں آتی۔',
-thermal:'شہروں، فیکٹریوں اور بجلی گھروں کی گرمی ہوا اور پانی کو گرم کرتی ہے۔ اس سے لو لگتی ہے، بجلی کا بل بڑھتا ہے اور دریاؤں کی زندگی مرتی ہے۔',
-land:'مٹی میں کچرا، کیمیکل اور پلاسٹک ہماری خوراک اور زیرِ زمین پانی کو زہریلا کر دیتے ہیں۔ آلودہ زمین سالوں تک نقصان دہ رہتی ہے۔',
-noise:'مسلسل تیز شور سے ذہنی دباؤ اور بلڈ پریشر بڑھتا ہے، نیند خراب ہوتی ہے اور سماعت اور بچوں کی پڑھائی متاثر ہوتی ہے۔',
-light:'رات کی ضرورت سے زیادہ روشنی نیند خراب کرتی ہے، پرندوں اور کیڑوں کو الجھاتی ہے اور ستارے چھپا دیتی ہے۔',
-radioactive:'کچرے یا حادثات سے نکلنے والی تابکاری کینسر اور ڈی این اے کو نقصان پہنچا سکتی ہے۔ عام شہروں میں سطح کم ہوتی ہے، مگر ایسے کچرے کا محفوظ ذخیرہ ضروری ہے۔'},
-h:[['شہر لکھیں','دنیا کا کوئی بھی شہر لکھیں۔'],['لائیو ڈیٹا','ہوا کا معیار اور درجہ حرارت Open-Meteo سے لائیو آتا ہے۔'],['AI آسان الفاظ میں سمجھاتا ہے','باقی اندازے Gemini لگاتا ہے اور آسان اردو یا انگریزی میں بتاتا ہے۔']],
-f:[['کیا ڈیٹا اصلی ہے؟','ہوا کا معیار اور درجہ حرارت لائیو ہے۔ پانی، زمین، شور، روشنی اور تابکاری AI کے اندازے ہیں، اس لیے انہیں رہنمائی سمجھیں، سرکاری پیمائش نہیں۔'],
-['اسکور کا کیا مطلب ہے؟','0 بہت صاف اور 100 بہت آلودہ ہے۔ سبز محفوظ، پیلا درمیانہ، نارنجی غیر صحت بخش اور سرخ خطرناک ہے۔'],
-['5 سالہ اندازہ کیسے بنتا ہے؟','AI موجودہ حالات اور عمومی رجحانات سے ہر اسکور کا اندازہ لگاتا ہے۔ یہ سمجھدار اندازہ ہے، وعدہ نہیں۔'],
-['میں کیا کر سکتا ہوں؟','خراب ہوا والے دن ماسک پہنیں، بجلی اور پانی بچائیں، کچرا نہ جلائیں، درخت لگائیں اور آلودگی کی شکایت متعلقہ ادارے کو کریں۔']]}};
-function more(){
-  const c=C[lang],n=T[lang].n,E={air:'💨',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
-  const rk=rank?`<section id="rank"><h2 class="sh">${c.rk[0]}</h2><p class="sub">${c.rk[1]}</p><div class="card lc" style="margin-top:20px">${rank.map((x,i)=>`<div class="rk" data-c="${esc(x.en)}"><span>${i+1}. ${esc(lang=='ur'?x.ur:x.en)}</span><div class="bar"><i style="width:${Math.min(100,x.aqi/3)}%;background:${col(x.aqi/3)}"></i></div><b>${x.aqi}</b></div>`).join('')}</div></section>`:'';
-  $('.links').innerHTML=['f','learn','how','faq'].map((h,i)=>`<a href="#${h}">${c.nv[i]}</a>`).join('');
-  $('#more').innerHTML=`<div class="stats">${c.st.map(s=>`<div class="stat"><b>${s[0]}</b>${s[1]}</div>`).join('')}</div>
-  ${rk}<section id="learn"><h2 class="sh">${c.nv[1]}</h2><p class="sub">${c.ls}</p><div class="grid" style="margin-top:20px">${K.map(k=>`<div class="card lc"><h3>${E[k]} ${n[k]}</h3><p>${c.l[k]}</p></div>`).join('')}</div></section>
-  <section id="how"><h2 class="sh">${c.nv[2]}</h2><div class="grid">${c.h.map((s,i)=>`<div class="card lc"><span style="font-size:34px;font-weight:800;color:var(--ac)">${i+1}</span><h3>${s[0]}</h3><p>${s[1]}</p></div>`).join('')}</div></section>
-  <section id="faq"><h2 class="sh">${c.nv[3]}</h2>${c.f.map(q=>`<details><summary>${q[0]}</summary><p style="color:var(--mut)">${q[1]}</p></details>`).join('')}</section>`;
+// ---- CONFIG: paste your deployed ClimateLedger address here ----
+const CONTRACT = "";
+const $ = id => document.getElementById(id);
+const S = {air:null, crop:null, loss:null};
+// Illustrative offline samples, used only if the live API fails. Always labelled and never eligible for payout.
+const CACHE={lahore:{city:"Lahore",lat:31.55,lon:74.34,aqi:165,pm25:72,pm10:110,o3:60,no2:40,so2:12,t:27,h:48,pmMax:90},
+ istanbul:{city:"Istanbul",lat:41.01,lon:28.98,aqi:62,pm25:18,pm10:30,o3:70,no2:25,so2:6,t:17,h:72,pmMax:26}};
+const UR={"US AQI":"امریکی AQI","Ozone µg/m³":"اوزون µg/m³","Temperature":"درجہ حرارت","Humidity":"نمی","Peak PM2.5, next 24 h":"PM2.5 کی بلند ترین سطح، اگلے ۲۴ گھنٹے",
+"Estimated visible discoloration":"پتے کا نقصان","Healthy":"صحت مند","Stage":"مرحلہ","No damage found":"کوئی نقصان نہیں ملا","Mild":"ہلکا","Moderate":"درمیانہ","Severe":"شدید","Detected leaf area":"پتے کا رقبہ",
+"Illustrative yield loss":"مظاہراتی پیداوار کا نقصان","Illustrative loss per acre":"فی ایکڑ نقصان","Consistency score":"اعتماد کا اسکور","Eligible":"اہل","Not eligible":"نااہل","Parametric payout":"پیرامیٹرک ادائیگی",
+"Chemical protocol":"کیمیائی علاج","Cultural controls":"زرعی انتظام","Preventative action":"احتیاطی اقدام","Healthy leaf":"صحت مند پتا",
+"Chain valid. All hashes match.":"چین درست ہے۔ تمام ہیش مل رہے ہیں۔","Chain broken at block":"چین اس بلاک پر ٹوٹی ہوئی ہے","Tamper detected in block":"بلاک میں چھیڑ چھاڑ پکڑی گئی",
+"The hash no longer matches.":"ہیش اب مطابقت نہیں رکھتا۔","Your real chain is unchanged.":"آپ کی اصل چین تبدیل نہیں ہوئی۔",
+"Stomatal risk: heavy particles can clog leaf pores and weaken plant defenses against disease. Scout your crop more often.":"سٹومیٹل خطرہ: ذرات پتوں کے مسام بند کر کے بیماری کے خلاف پودے کی مزاحمت کم کر سکتے ہیں۔ فصل کا زیادہ بار معائنہ کریں۔",
+"⚠️ No botanical foliage identified. Please provide a clear leaf image.":"⚠️ کوئی پودے کا پتا نہیں ملا۔ براہِ کرم پتے کی واضح تصویر دیں۔",
+"Live data unavailable. Showing illustrative offline sample data.":"لائیو ڈیٹا دستیاب نہیں۔ نمونہ آف لائن ڈیٹا دکھایا جا رہا ہے۔",
+"Could not load data. Check your connection and try again.":"ڈیٹا لوڈ نہیں ہو سکا۔ کنکشن چیک کریں اور دوبارہ کوشش کریں۔","Offline sample data":"آف لائن نمونہ ڈیٹا","Run Parametric Loss Audit":"پیرامیٹرک نقصان کا آڈٹ چلائیں","Both results are ready.":"دونوں نتائج تیار ہیں۔","No blocks minted yet":"ابھی کوئی بلاک نہیں بنا","Rule check":"اصول کی جانچ","illustrative":"مظاہراتی","pass":"پاس","fail":"ناکام","unknown":"نامعلوم","Humidity OR ozone":"نمی یا اوزون","Not evaluable":"جانچ ممکن نہیں","Demonstration rules, not insurance terms. The consistency score is a heuristic, not a probability.":"یہ مظاہراتی اصول ہیں، انشورنس کی شرائط نہیں۔ مطابقت کا اسکور ایک اندازہ ہے، امکان نہیں۔","Air quality: last 7 days":"ہوا کا معیار: پچھلے ۷ دن","daily average PM2.5, µg/m³":"روزانہ اوسط PM2.5، µg/m³","Which pollutant is the problem?":"کون سا آلودہ مادہ مسئلہ ہے؟","times the WHO guideline":"عالمی ادارہ صحت کی حد کے گنا","Tap a card for details":"تفصیل کے لیے کارڈ پر ٹیپ کریں","5-year outlook (qualitative)":"۵ سالہ رجحان (معیاری اندازہ)","Action plan":"عملی منصوبہ","Who is most at risk":"سب سے زیادہ خطرے میں کون","Environmental footprint":"ماحولیاتی اثر","No live data source for this pollution type in this prototype.":"اس پروٹوٹائپ میں اس قسم کی آلودگی کا کوئی لائیو ڈیٹا ذریعہ نہیں۔","Type a question":"سوال لکھیں","Crop type":"فصل کی قسم","Typical pathology (set by crop choice)":"عام بیماری (فصل کے انتخاب کے مطابق)","Good":"اچھی","Unhealthy":"غیر صحت بخش","Very unhealthy":"بہت غیر صحت بخش","Hazardous":"خطرناک","Cigarettes per day":"روزانہ سگریٹ کے برابر","WHO daily guideline":"عالمی ادارہ صحت کی یومیہ حد","Best time for fieldwork":"فیلڈ ورک کا بہترین وقت","Avoid outdoor exposure":"کھلی فضا سے پرہیز","based on today's PM2.5 forecast":"آج کی PM2.5 پیش گوئی کے مطابق","Air":"ہوا","Water":"پانی","Thermal":"حرارتی","Land":"زمین","Noise":"شور","Light":"روشنی","Radioactive":"تابکاری","Live air quality index":"لائیو ایئر کوالٹی انڈیکس","Rainfall now":"اس وقت بارش","Heat or frost stress from temperature":"درجہ حرارت سے گرمی یا پالے کا دباؤ","No live source. Needs sensor or satellite data.":"کوئی لائیو ذریعہ نہیں۔ سینسر یا سیٹلائٹ ڈیٹا درکار ہے۔","Telemetry: idle":"ٹیلی میٹری: غیر فعال","Live telemetry":"لائیو ٹیلی میٹری","Demo scenario":"نمونہ منظرنامہ","Quick-fill with demo scenario":"نمونہ منظرنامے سے بھریں","🔊 Listen to Agronomic Advisory":"🔊 زرعی مشورہ سنیں","Simulate tamper":"چھیڑ چھاڑ کی نقل","Restore original":"اصل بحال کریں","No consistency flags.":"کوئی تضاد نہیں ملا۔","Little leaf area found in the photo":"تصویر میں پتے کا رقبہ بہت کم ہے","Damage is high but humidity and ozone do not support it":"نقصان زیادہ ہے مگر نمی اور اوزون اس کی تائید نہیں کرتے","High humidity supports fungal spread":"زیادہ نمی پھپھوندی کے پھیلاؤ میں مدد دیتی ہے","Offline sample data, not a live reading":"آف لائن نمونہ ڈیٹا، لائیو ریڈنگ نہیں"};
+const tr=x=>(typeof LG!=="undefined"&&LG==="ur"&&UR[x])||x;
+
+// ---- background: rising glowing seeds ----
+(function(){const c=$("bg"),x=c.getContext("2d");let w,h,p=[];
+function rs(){w=c.width=innerWidth;h=c.height=innerHeight}rs();addEventListener("resize",rs);
+for(let i=0;i<14;i++)p.push({x:Math.random()*w,y:Math.random()*h,r:1+Math.random()*1.5,v:.1+Math.random()*.2,a:Math.random()});
+(function f(){x.clearRect(0,0,w,h);for(const d of p){d.y-=d.v;d.a+=.01;if(d.y<-5){d.y=h+5;d.x=Math.random()*w}
+x.globalAlpha=.08+.14*Math.abs(Math.sin(d.a));x.fillStyle="#6dffa8";x.shadowColor="#3ddc84";x.shadowBlur=6;
+x.beginPath();x.arc(d.x,d.y,d.r,0,6.3);x.fill()}requestAnimationFrame(f)})()})();
+
+// ---- tabs ----
+function goStep(n){const e=$("t-"+n);if(e)e.scrollIntoView({behavior:"smooth",block:"start"})}
+
+const k = (v,l,c="") => `<div class="k"><b class="${c}">${v}</b><span>${tr(l)}</span></div>`;
+const getJSON = async (u,sg) => { const r=await fetch(u,{signal:sg}); if(!r.ok) throw new Error("Request failed"); return r.json(); };
+
+// ---- 1. air and weather ----
+function renderAir(){const A=S.air;if(!A)return;const cl=A.aqi<=50?"g":A.aqi<=100?"y":"r";
+  $("airK").innerHTML=k(A.aqi,"US AQI",cl)+k(A.pm25,"PM2.5 µg/m³")+k(A.pm10,"PM10 µg/m³")+k(A.o3,"Ozone µg/m³")+k(A.no2,"NO₂ µg/m³")+k(A.so2,"SO₂ µg/m³")+k(A.t+"°C","Temperature")+k(A.h+"%","Humidity")+k(A.pmMax,"Peak PM2.5, next 24 h",A.pmMax>55?"r":"g");
+  $("stoma").innerHTML=(A.cached?'<div class="warn">'+tr("Offline sample data")+'</div>':"")+(A.demo?'<div class="warn">Demo scenario: illustrative data, not a live reading.</div>':"")+((A.pm25>35||A.aqi>100)?'<div class="warn">'+tr("Stomatal risk: heavy particles can clog leaf pores and weaken plant defenses against disease. Scout your crop more often.")+'</div>':"");renderEco();renderLoss()}
+const LOC={multan:{name:"Multan",latitude:30.157,longitude:71.524,fb:{aqi:175,pm25:95,pm10:150,o3:135,no2:38,so2:10,t:44,h:38,pmMax:120}},
+ ecuador:{name:"Banana belt, Ecuador",latitude:-1.831,longitude:-78.183,fb:{aqi:45,pm25:10,pm10:20,o3:50,no2:8,so2:2,t:27,h:85,pmMax:14}},
+ antalya:{name:"Antalya",latitude:36.896,longitude:30.713,fb:{aqi:55,pm25:14,pm10:30,o3:95,no2:15,so2:4,t:36,h:35,pmMax:20}}};
+async function lookup(g0){
+  const m=$("airMsg"),btn=$("goAir"),sp=btn.querySelector(".spin"),name=g0?g0.name:$("city").value.trim();
+  if(!name){m.textContent="Enter a city name.";return}
+  btn.disabled=true;sp.hidden=false;m.textContent="Loading…";
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),3000),sg=ctl.signal;
+  try{
+    const kn=g0?null:CACHE[name.toLowerCase()];   // known cities skip geocoding, so the live call is faster
+    const g=g0||(kn?{name:kn.city,latitude:kn.lat,longitude:kn.lon}:(await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=1&name="+encodeURIComponent(name),sg)).results?.[0]);
+    if(!g){m.textContent="City not found. Check the spelling and try again.";return}
+    const q=`latitude=${g.latitude}&longitude=${g.longitude}`;
+    const [a,w]=await Promise.all([
+      getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${q}&current=us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide&hourly=pm2_5&past_days=7&forecast_days=1&timezone=auto`,sg),
+      getJSON(`https://api.open-meteo.com/v1/forecast?${q}&current=temperature_2m,relative_humidity_2m,precipitation`,sg)]);
+    const c=a.current,all=a.hourly.pm2_5,hv=all.slice(-24),ok=hv.filter(v=>v!=null),mx=Math.max(...ok),mn=Math.min(...ok);
+    const avg=x=>{const o=x.filter(v=>v!=null);return o.length?+(o.reduce((t,v)=>t+v,0)/o.length).toFixed(1):0};
+    const trend=[...Array(Math.floor(all.length/24))].map((_,i)=>({d:a.hourly.time[i*24].slice(5),v:avg(all.slice(i*24,i*24+24))}));
+    S.air={city:g.name,lat:+(+g.latitude).toFixed(3),lon:+(+g.longitude).toFixed(3),aqi:c.us_aqi,pm25:c.pm2_5,pm10:c.pm10,o3:c.ozone,no2:c.nitrogen_dioxide,so2:c.sulphur_dioxide,t:w.current.temperature_2m,h:w.current.relative_humidity_2m,pr:w.current.precipitation,co:c.carbon_monoxide,obs:c.time,trend,pmMax:mx,best:hv.indexOf(mn),worst:hv.indexOf(mx)};
+    S.audited=false;$("city").value=g.name;renderAir();
+    m.textContent=`${g.name}${g.country?", "+g.country:""}. Live reading loaded. Source: Open-Meteo (model-derived current conditions), ${c.time} local time.`;
+  }catch(err){console.error("ClimaSphere air fetch failed:",err);
+    const f=g0&&g0.fb?{city:g0.name,lat:g0.latitude,lon:g0.longitude,...g0.fb}:CACHE[name.toLowerCase()];
+    if(f){S.air={...f,cached:true};S.audited=false;renderAir();m.textContent=tr("Live data unavailable. Showing illustrative offline sample data.")}
+    else m.textContent=tr("Could not load data. Check your connection and try again.")}
+  finally{clearTimeout(to);btn.disabled=false;sp.hidden=true}
 }
-function ui(){
-  const t=T[lang];
-  document.documentElement.lang=lang;document.documentElement.dir=lang=='ur'?'rtl':'ltr';
-  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t[e.dataset.t]);
-  $('#q').placeholder=t.ph;$('#q2').placeholder=t.ph2;$('#loc').textContent=t.loc;tags();$('#h1').innerHTML=t.h1;
-  $('#lg').textContent=lang=='en'?'اردو':'English';
-  const dk=document.documentElement.dataset.theme=='dark';
-  $('#th').textContent=dk?'☀️':'🌙';$('#th').title=dk?t.light:t.dark;
-  more();
-  render();
+$("goAir").onclick=()=>lookup();
+document.addEventListener("click",e=>{const l=e.target.closest("[data-loc]");if(l)lookup(LOC[l.dataset.loc]);const ct=e.target.closest("[data-city]");if(ct){$("city").value=ct.dataset.city;lookup()}
+  const pc=e.target.closest("[data-pc]");if(pc)openM(pc.dataset.pc);
+  if(e.target.closest("[data-geo]")){if(!navigator.geolocation){$("airMsg").textContent="Location is not available in this browser.";return}
+    navigator.geolocation.getCurrentPosition(p=>lookup({name:"My location",latitude:p.coords.latitude,longitude:p.coords.longitude}),()=>{$("airMsg").textContent="Location permission was denied."})}});
+function lineSvg(pts){const W=600,H=170,p=24,m=Math.max(...pts.map(x=>x.v),1)*1.15,X=i=>p+i*(W-2*p)/(pts.length-1),Y=v=>H-p-(v/m)*(H-2*p);
+  let d=`M${X(0)},${Y(pts[0].v)}`;for(let i=1;i<pts.length;i++){const cx=(X(i-1)+X(i))/2;d+=` C${cx},${Y(pts[i-1].v)} ${cx},${Y(pts[i].v)} ${X(i)},${Y(pts[i].v)}`}
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="PM2.5 trend"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10b981" stop-opacity=".45"/><stop offset="1" stop-color="#10b981" stop-opacity="0"/></linearGradient></defs><path d="${d} L${X(pts.length-1)},${H-p} L${X(0)},${H-p} Z" fill="url(#ag)"/><path d="${d}" fill="none" stroke="#10b981" stroke-width="2.5"/>${pts.map((q,i)=>`<circle cx="${X(i)}" cy="${Y(q.v)}" r="3.5" fill="#10b981"><title>${q.d}: ${q.v}</title></circle><text x="${X(i)}" y="${H-6}" font-size="10" text-anchor="middle" fill="#8ea39a">${q.d}</text>`).join("")}</svg>`}
+function whoBars(A){const r=[["PM2.5",A.pm25/15],["PM10",A.pm10/45],["NO₂",A.no2/25],["O₃",A.o3/100],["SO₂",A.so2/40]];if(A.co!=null)r.push(["CO",A.co/4000]);r.sort((a,b)=>b[1]-a[1]);const m=Math.max(2,r[0][1]);
+  return r.map(([n,v])=>`<div class="wb"><span>${n}</span><div class="mbar"><i style="width:${Math.min(100,v/m*100)}%;background:${v<1?"#3ddc84":v<2?"#f5b942":"#ff5c5c"}"></i></div><b>${v.toFixed(1)}×</b></div>`).join("")}
+function charts(A){return `${A.trend&&A.trend.length>1?`<div class="sub2"><b>${tr("Air quality: last 7 days")}</b> <span class="note">${tr("daily average PM2.5, µg/m³")}</span>${lineSvg(A.trend)}</div>`:""}<div class="sub2"><b>${tr("Which pollutant is the problem?")}</b> <span class="note">${tr("times the WHO guideline")}</span>${whoBars(A)}<p class="note">WHO 2021 air quality guideline values.</p></div><p class="note">${tr("Tap a card for details")}</p>`}
+const MD={
+air:{o:["With traffic, industry and crop-burning pressure, urban PM2.5 usually stays high unless emission controls are enforced. This is a qualitative outlook, not a model forecast.","ٹریفک، صنعت اور فصلوں کی باقیات جلانے کے دباؤ کے ساتھ شہری PM2.5 عموماً بلند رہتا ہے جب تک اخراج پر کنٹرول نافذ نہ ہو۔ یہ معیاری اندازہ ہے، ماڈل کی پیش گوئی نہیں۔"],
+ a:[["Enforce vehicle and industrial emission standards","گاڑیوں اور صنعتوں کے اخراج کے معیار نافذ کریں"],["Ban open burning of crop residue and waste","فصل کی باقیات اور کچرا کھلے عام جلانے پر پابندی لگائیں"],["Expand public transport and green belts","پبلک ٹرانسپورٹ اور سبز پٹیاں بڑھائیں"]],
+ v:[["Children: asthma and lung development risk","بچے: دمہ اور پھیپھڑوں کی نشوونما کا خطرہ"],["Elderly: heart and breathing strain","بزرگ: دل اور سانس پر دباؤ"],["Outdoor workers: long exposure; wear N95 masks on bad days","کھلی فضا میں کام کرنے والے: طویل نمائش، خراب دنوں میں N95 ماسک پہنیں"]],
+ f:["Soot and ozone cut crop yields, settle on rivers and harm wildlife.","کاجل اور اوزون فصل کی پیداوار کم کرتے ہیں، دریاؤں میں جمتے ہیں اور جنگلی حیات کو نقصان پہنچاتے ہیں۔"]},
+water:{o:["Heavier but less regular rainfall raises runoff and flood risk in many regions. This is a qualitative outlook, not a model forecast.","کئی علاقوں میں زیادہ شدید مگر بے قاعدہ بارش بہاؤ اور سیلاب کا خطرہ بڑھاتی ہے۔ یہ معیاری اندازہ ہے، ماڈل کی پیش گوئی نہیں۔"],
+ a:[["Harvest rainwater and upgrade drainage","بارش کا پانی جمع کریں اور نکاسی بہتر بنائیں"],["Keep fertilizer and waste out of drains","کھاد اور کچرا نالیوں میں جانے سے روکیں"],["Protect wetlands and river buffers","دلدلی زمین اور دریا کے کناروں کی حفاظت کریں"]],
+ v:[["Children: waterborne illness after floods","بچے: سیلاب کے بعد پانی سے پھیلنے والی بیماریاں"],["Elderly: mobility risk in floods","بزرگ: سیلاب میں نقل و حرکت کا خطرہ"],["Outdoor workers: wet, unsafe working conditions","کھلی فضا میں کام کرنے والے: گیلے اور غیر محفوظ حالات"]],
+ f:["Runoff carries soil, fertilizer and pathogens into rivers and onto crops.","بہتا پانی مٹی، کھاد اور جراثیم کو دریاؤں اور فصلوں تک لے جاتا ہے۔"]},
+thermal:{o:["Heatwaves are becoming more frequent in many regions, raising crop and worker stress. This is a qualitative outlook, not a model forecast.","کئی علاقوں میں گرمی کی لہریں بڑھ رہی ہیں، جس سے فصل اور مزدوروں پر دباؤ بڑھتا ہے۔ یہ معیاری اندازہ ہے، ماڈل کی پیش گوئی نہیں۔"],
+ a:[["Plant trees and add shade and cool roofs","درخت لگائیں اور سایہ اور ٹھنڈی چھتیں بنائیں"],["Issue early heat warnings","گرمی کی قبل از وقت وارننگ جاری کریں"],["Shift field work to cooler hours","کھیت کا کام ٹھنڈے اوقات میں کریں"]],
+ v:[["Children: heat illness","بچے: گرمی سے بیماری"],["Elderly: heatstroke risk","بزرگ: لو لگنے کا خطرہ"],["Outdoor workers: dehydration and exhaustion","کھلی فضا میں کام کرنے والے: پانی کی کمی اور تھکن"]],
+ f:["Heat stress lowers yields, dries rivers and strains wildlife.","گرمی کا دباؤ پیداوار کم کرتا، دریا خشک کرتا اور جنگلی حیات پر بوجھ ڈالتا ہے۔"]}};
+let MN=null;
+function openM(n){MN=n;const m=MD[{Air:"air",Water:"water",Thermal:"thermal"}[n]],i=LG==="ur"?1:0,L=x=>x.map(y=>`<li>${y[i]}</li>`).join("");
+  $("mbody").innerHTML=`<h3>${tr(n)}</h3>`+(m?`<h4>${tr("5-year outlook (qualitative)")}</h4><p>${m.o[i]}</p><h4>${tr("Action plan")}</h4><ul>${L(m.a)}</ul><h4>${tr("Who is most at risk")}</h4><ul>${L(m.v)}</ul><h4>${tr("Environmental footprint")}</h4><p>${m.f[i]}</p>`:`<p>${tr("No live data source for this pollution type in this prototype.")}</p>`);$("mdl").hidden=false}
+const closeM=()=>{$("mdl").hidden=true;MN=null};
+$("mclose").onclick=closeM;$("mdl").onclick=e=>{if(e.target===$("mdl"))closeM()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeM();if(e.key==="Enter"){const c=e.target.closest&&e.target.closest("[data-pc]");if(c)openM(c.dataset.pc)}});
+// ---- agronomist co-pilot: pre-written answers, keyword matched ----
+const QA=[{q:["What organic alternatives can replace synthetic fungicides?","کیا کیمیائی پھپھوندی کش ادویات کی جگہ نامیاتی متبادل ہیں؟"],
+ a:["Options include copper-based sprays (where organic rules allow), sulfur (avoid in hot weather), Bacillus subtilis biofungicides and neem oil. They mostly protect healthy leaves and work poorly once damage is advanced, so combine them with removing infected leaves, good spacing and resistant varieties. Check local organic rules and label directions.","متبادل طریقوں میں کاپر پر مبنی سپرے (جہاں نامیاتی اصول اجازت دیں)، گندھک (گرم موسم میں استعمال نہ کریں)، بیسیلس سبٹیلس بایو فنگسائیڈ اور نیم کا تیل شامل ہیں۔ یہ زیادہ تر صحت مند پتوں کو بچاتے ہیں اور بڑھی ہوئی بیماری پر کم اثر کرتے ہیں، اس لیے متاثرہ پتے ہٹانے، مناسب فاصلے اور مزاحم اقسام کے ساتھ استعمال کریں۔ مقامی نامیاتی اصول اور لیبل ہدایات دیکھیں۔"]},
+{q:["How does high humidity speed up spore spread?","زیادہ نمی بیماری کے جراثیم کے پھیلاؤ کو کیسے تیز کرتی ہے؟"],
+ a:["Most leaf fungi need moisture on the leaf to germinate. High humidity and long dew periods keep leaves wet for hours, so spores germinate and infect faster, and warm humid nights speed the cycle. When the dew point is close to the air temperature, leaves are likely wet. Scout more often and avoid evening watering.","زیادہ تر پتوں کی پھپھوند کو اگنے کے لیے پتے پر نمی چاہیے۔ زیادہ نمی اور لمبی اوس پتوں کو کئی گھنٹے گیلا رکھتی ہے، اس لیے جراثیم تیزی سے اگتے اور حملہ کرتے ہیں، اور گرم مرطوب راتیں اس عمل کو تیز کرتی ہیں۔ جب ڈیو پوائنٹ ہوا کے درجہ حرارت کے قریب ہو تو پتے گیلے ہونے کا امکان ہوتا ہے۔ زیادہ بار معائنہ کریں اور شام کو پانی نہ دیں۔"]},
+{q:["Can blight spread through irrigation runoff?","کیا جھلساؤ آبپاشی کے بہتے پانی سے پھیل سکتا ہے؟"],
+ a:["Yes, for some diseases. Late blight spores can travel in splashing and standing water, and runoff can carry infected debris between plots. Other leaf spots spread mostly by wind and rain splash. Use drip irrigation, improve drainage, and keep infected leaves out of irrigation channels.","کچھ بیماریوں کے لیے ہاں۔ لیٹ بلائٹ کے جراثیم چھینٹوں اور کھڑے پانی میں پھیل سکتے ہیں، اور بہتا پانی متاثرہ ملبہ ایک کھیت سے دوسرے تک لے جا سکتا ہے۔ پتوں کے دوسرے دھبے زیادہ تر ہوا اور بارش کے چھینٹوں سے پھیلتے ہیں۔ ٹپک آبپاشی استعمال کریں، نکاسی بہتر بنائیں اور متاثرہ پتے آبپاشی کی نالیوں سے دور رکھیں۔"]}];
+const QFB=["I can answer the three questions above, and keywords like organic, humidity or irrigation. For anything else, ask a local agriculture extension officer.","میں اوپر کے تین سوالات اور نامیاتی، نمی یا آبپاشی جیسے الفاظ پر جواب دے سکتا ہوں۔ باقی سوالات کے لیے مقامی محکمہ زراعت کے افسر سے رابطہ کریں۔"];
+function renderQA(){const i=LG==="ur"?1:0;$("qchips").innerHTML=QA.map((x,k)=>`<button class="chip" data-q="${k}">${x.q[i]}</button>`).join("");$("q").placeholder=tr("Type a question")}
+function ask(k){const i=LG==="ur"?1:0;$("ans").innerHTML=`<div class="warn">${k==null?QFB[i]:QA[k].a[i]}</div>`}
+$("copilot").onclick=e=>{const c=e.target.closest("[data-q]");if(c){ask(+c.dataset.q);return}
+  if(e.target.closest("#ask")){const t=$("q").value.toLowerCase();ask(/organic|neem|copper|sulfur|sulphur|natural|نامیاتی|نیم/.test(t)?0:/humid|moist|wet|dew|spore|نمی|اوس/.test(t)?1:/irrigat|runoff|flood|water|آبپاشی|پانی/.test(t)?2:null)}};
+function renderEco(){const A=S.air;if(!A)return;
+  const lv=A.aqi<=50?["Good","#3ddc84"]:A.aqi<=100?["Moderate","#f5b942"]:A.aqi<=200?["Unhealthy","#ff5c5c"]:A.aqi<=300?["Very unhealthy","#ff5c5c"]:["Hazardous","#ff5c5c"],
+  off=(339.3*(1-Math.min(A.aqi,300)/300)).toFixed(1),hh=n=>String(n).padStart(2,"0")+":00",cig=(A.pm25/22).toFixed(1),who=(A.pm25/15).toFixed(1),
+  sc=v=>v<34?"#3ddc84":v<67?"#f5b942":"#ff5c5c",
+  card=(n,v,t)=>v==null?`<div class="mc na" data-pc="${n}" tabindex="0"><b>${tr(n)}</b><span class="sc">–</span><div class="mbar"></div><small>${tr("No live source. Needs sensor or satellite data.")}</small></div>`
+   :`<div class="mc" data-pc="${n}" tabindex="0"><b>${tr(n)}</b><span class="sc" style="color:${sc(v)}">${v}</span><div class="mbar"><i style="width:${v}%;background:${sc(v)}"></i></div><small>${tr(t)}</small></div>`,
+  wt=A.pr!=null?Math.min(100,Math.round(A.pr*20)):null,th=Math.round(Math.max(0,Math.min(100,Math.max((A.t-25)*5,(5-A.t)*10))));
+  $("eco").innerHTML=`<div class="gwrap"><svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="AQI ${A.aqi}"><circle cx="70" cy="70" r="54" fill="none" stroke="#1b2e24" stroke-width="12"/><circle class="arc" cx="70" cy="70" r="54" fill="none" stroke="${lv[1]}" stroke-width="12" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="${off}" transform="rotate(-90 70 70)"/><text x="70" y="78" text-anchor="middle" font-size="30" font-weight="800" fill="#f1f7f4">${A.aqi}</text></svg>
+  <div><span class="pill" style="color:${lv[1]};border-color:${lv[1]}">${tr(lv[0])}</span><div class="kpis"><div class="k"><b>${cig}</b><span>${tr("Cigarettes per day")} (PM2.5 ÷ 22)</span></div><div class="k"><b>${who}×</b><span>${tr("WHO daily guideline")} (15 µg/m³)</span></div></div>
+  ${A.best!=null?`<p class="note">${tr("Best time for fieldwork")}: ${hh(A.best)} · ${tr("Avoid outdoor exposure")}: ${hh(A.worst)} (${tr("based on today's PM2.5 forecast")})</p>`:""}</div></div>
+  ${charts(A)}<div class="mx">${card("Air",Math.min(100,Math.round(A.aqi/3)),"Live air quality index")+card("Water",wt,"Rainfall now")+card("Thermal",th,"Heat or frost stress from temperature")+["Land","Noise","Light","Radioactive"].map(n=>card(n,null)).join("")}</div>`;
+  const t=$("tel");t.textContent=A.cached?tr("Offline sample data"):A.demo?tr("Demo scenario"):tr("Live telemetry")+" · AQI "+A.aqi;t.classList.toggle("on",!A.cached&&!A.demo)}
+
+// ---- 2. crop scan (HSV segmentation) ----
+const TX={
+banana:{d:"Black Sigatoka",chem:"Protectant and systemic fungicides such as mancozeb, propiconazole or azoxystrobin, rotated between classes. Follow the product label for rates and intervals.",cult:"Remove and destroy badly spotted leaves, improve spacing and drainage, and water at the base instead of overhead.",prev:"Scout weekly and watch for humidity above 80% with warm nights, which speeds spore spread."},
+tomato:{d:"Late Blight",chem:"Protectant fungicides such as chlorothalonil or copper, or metalaxyl-based products, rotated by class. Follow the label for rates.",cult:"Remove infected plants, stake and prune for airflow, and avoid wetting leaves late in the day.",prev:"Late blight thrives in cool, wet weather. Check the forecast and protect before long wet spells."},
+potato:{d:"Early Blight",chem:"Fungicides such as chlorothalonil, mancozeb or azoxystrobin, rotated by class. Follow the label for rates.",cult:"Rotate crops, clear old plant debris, keep plants well fed and avoid drought stress.",prev:"Watch warm, humid spells and start protective sprays when the first spots appear."},
+other:{d:"Estimated visible discoloration",chem:"Identify the cause with a local agriculture extension officer before spraying.",cult:"Remove badly affected leaves, improve airflow and avoid overhead watering.",prev:"Track humidity and rainfall, and rescan every few days."}};
+const TXU={
+banana:{d:"بلیک سگاٹوکا",chem:"مینکوزیب، پروپیکونازول یا ازوکسی اسٹروبن جیسی حفاظتی اور سسٹمک پھپھوندی کش ادویات کو مختلف گروپس میں بدل بدل کر استعمال کریں۔ مقدار اور وقفہ پراڈکٹ لیبل کے مطابق رکھیں۔",cult:"بری طرح دھبے والے پتے کاٹ کر تلف کر دیں، پودوں کے درمیان فاصلہ اور پانی کی نکاسی بہتر بنائیں، اور پانی اوپر سے دینے کے بجائے جڑ میں دیں۔",prev:"ہر ہفتے فصل کا معائنہ کریں۔ نمی ۸۰ فیصد سے زیادہ اور گرم راتیں ہوں تو بیماری تیزی سے پھیلتی ہے۔"},
+tomato:{d:"لیٹ بلائٹ (جھلساؤ)",chem:"کلوروتھیلونل یا کاپر، یا میٹالیکسل پر مبنی ادویات کو گروپ بدل بدل کر استعمال کریں۔ مقدار لیبل کے مطابق رکھیں۔",cult:"متاثرہ پودے ہٹا دیں، ہوا کے گزر کے لیے سہارا اور کانٹ چھانٹ کریں، اور شام کے وقت پتوں کو گیلا کرنے سے گریز کریں۔",prev:"لیٹ بلائٹ ٹھنڈے اور گیلے موسم میں پھیلتا ہے۔ موسم کی پیش گوئی دیکھیں اور لمبی بارشوں سے پہلے حفاظتی سپرے کریں۔"},
+potato:{d:"ارلی بلائٹ",chem:"کلوروتھیلونل، مینکوزیب یا ازوکسی اسٹروبن جیسی ادویات گروپ بدل بدل کر استعمال کریں۔ مقدار لیبل کے مطابق رکھیں۔",cult:"فصل کی باری بدلیں، پرانے پودوں کی باقیات صاف کریں، پودوں کو مناسب خوراک دیں اور پانی کی کمی سے بچائیں۔",prev:"گرم اور مرطوب موسم پر نظر رکھیں اور پہلے دھبے نظر آتے ہی حفاظتی سپرے شروع کریں۔"},
+other:{d:"پتوں کو نقصان",chem:"سپرے سے پہلے مقامی محکمہ زراعت کے افسر سے بیماری کی وجہ معلوم کریں۔",cult:"بری طرح متاثرہ پتے ہٹا دیں، ہوا کا گزر بہتر کریں اور اوپر سے پانی دینے سے بچیں۔",prev:"نمی اور بارش کا ریکارڈ رکھیں اور ہر چند دن بعد دوبارہ اسکین کریں۔"}};
+function hsv(r,g,b){r/=255;g/=255;b/=255;const M=Math.max(r,g,b),n=Math.min(r,g,b),d=M-n;let h=0;
+  if(d){h=M===r?((g-b)/d)%6:M===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return[h,M?d/M:0,M]}
+function analyze(c){const x=c.getContext("2d",{willReadFrequently:true}),W=c.width,H=c.height,raw=x.getImageData(0,0,W,H),p=raw.data,n=W*H,L=new Uint8Array(n),M=new Uint8Array(n),E=new Uint8Array(n);let leaf=0,les=0;
+  for(let j=0;j<n;j++){const i=j*4,[h,s2,v]=hsv(p[i],p[i+1],p[i+2]);
+    if(h>=15&&h<=65&&s2>.30&&v>.20){M[j]=1;L[j]=1;les++}else if(h>65&&h<170&&s2>.20&&v>.15){L[j]=1;leaf++}}
+  for(let y=1;y<H-1;y++)for(let q=1;q<W-1;q++){const j=y*W+q;if(L[j]&&(!L[j-1]||!L[j+1]||!L[j-W]||!L[j+W]))E[j]=1}
+  S.vis={raw,M,E,W,H,c};
+  const tot=leaf+les,cover=tot/n*100,sev=tot?les/tot*100:0,st=sev<10?1:sev<=30?2:3;
+  if(cover<4){S.crop=null;S.audited=false;$("cropK").innerHTML='<div class="warn">'+tr("⚠️ No botanical foliage identified. Please provide a clear leaf image.")+'</div>';renderLoss();return}
+  S.crop={sev:+sev.toFixed(1),cover:+cover.toFixed(1),stage:st,name:$("crop").value};S.audited=false;
+  renderCropK();
+  paint("ov")}
+function renderCropK(){const C=S.crop;if(!C)return;const sev=C.sev,cl=sev<10?"g":sev<=30?"y":"r";
+  $("cropK").innerHTML=k(sev+"%","Estimated visible discoloration",cl)+k(sev<1?tr("Healthy"):tr("Stage")+" "+C.stage,sev<1?"No damage found":["Mild","Moderate","Severe"][C.stage-1],cl)+k(C.cover+"%","Detected leaf area")+k(C.name[0].toUpperCase()+C.name.slice(1),"Crop type")+k(((LG==="ur"?TXU:TX)[C.name]||(LG==="ur"?TXU:TX).other).d,"Typical pathology (set by crop choice)");renderLoss()}
+function paint(m){const V=S.vis;if(!V)return;document.querySelectorAll("#views button").forEach(b=>b.classList.toggle("on",b.dataset.v===m));const o=new ImageData(new Uint8ClampedArray(V.raw.data),V.W,V.H),p=o.data;
+  for(let j=0;j<V.W*V.H;j++){const i=j*4;
+    if(m==="mk"){p[i]=p[i+1]=p[i+2]=V.M[j]?255:0}else if(m==="rw"){}
+    else if(m==="ov"){if(V.E[j]){p[i]=255;p[i+1]=221;p[i+2]=0}else if(V.M[j]){p[i]=255;p[i+1]=50;p[i+2]=50}}}
+  V.c.getContext("2d").putImageData(o,0,0)}
+$("views").onclick=e=>{if(e.target.dataset.v)paint(e.target.dataset.v)};
+function sample(kind){const c=$("cv"),x=c.getContext("2d");c.width=480;c.height=360;c.hidden=false;
+  let sd=7;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  x.fillStyle="#d8d2c4";x.fillRect(0,0,480,360);x.save();x.translate(240,180);x.rotate(-.35);
+  x.beginPath();x.ellipse(0,0,190,105,0,0,6.3);x.fillStyle="#3f8f3a";x.fill();x.clip();
+  x.strokeStyle="#7fc06f";x.lineWidth=4;x.beginPath();x.moveTo(-190,0);x.lineTo(190,0);x.stroke();
+  const n={banana:45,tomato:7,potato:16,healthy:0}[kind];
+  for(let i=0;i<n;i++){const px=(R()-.5)*330,py=(R()-.5)*170;x.beginPath();
+    if(kind==="banana"){x.ellipse(px,py,16+R()*14,2.5+R()*2,0,0,6.3);x.fillStyle="#7a4a1e"}
+    else if(kind==="tomato"){x.ellipse(px,py,22+R()*20,18+R()*14,R(),0,6.3);x.fillStyle="#6b3f1a"}
+    else{x.arc(px,py,7+R()*8,0,6.3);x.fillStyle="#8a5524";x.fill();x.beginPath();x.arc(px,py,14+R()*6,0,6.3);x.strokeStyle="#c9a227";x.lineWidth=3;x.stroke();continue}
+    x.fill()}
+  x.restore();analyze(c)}
+$("smp").onclick=()=>sample($("crop").value==="other"?"tomato":$("crop").value);
+$("smpH").onclick=()=>sample("healthy");
+function loadFile(f){const img=new Image();
+  img.onload=()=>{const c=$("cv"),s=Math.min(1,640/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.hidden=false;c.getContext("2d").drawImage(img,0,0,c.width,c.height);analyze(c)};
+  img.onerror=()=>{$("cropK").innerHTML='<div class="warn">Could not read that image.</div>'};
+  img.src=URL.createObjectURL(f)}
+$("file").onchange=e=>{const f=e.target.files[0];if(f)loadFile(f)};
+const dz=$("drop");["dragenter","dragover"].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.add("over")}));
+["dragleave","drop"].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.remove("over")}));
+dz.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("image/"))loadFile(f)});
+
+// ---- 3. loss, trust score, payout trigger ----
+const RULES={ver:"demo-rules-1.0",dmg:10,hum:70,o3:100,conf:60};
+const isNum=v=>typeof v==="number"&&isFinite(v);
+function evalRules(A,C,conf){const t=(ok,known)=>!known?"unknown":ok?"pass":"fail",d=isNum(C.sev),h=isNum(A.h),o=isNum(A.o3);
+  const c1=t(d&&C.sev>=RULES.dmg,d),ch=t(h&&A.h>=RULES.hum,h),co=t(o&&A.o3>=RULES.o3,o),
+  c2=(ch==="pass"||co==="pass")?"pass":(ch==="fail"&&co==="fail")?"fail":"unknown",c3=t(conf>=RULES.conf,true),all=[c1,c2,c3],elig=all.every(x=>x==="pass");
+  return{ver:RULES.ver,elig,res:elig?"ELIGIBLE":all.includes("fail")?"NOT ELIGIBLE":"NOT EVALUABLE",checks:[
+   ["Estimated visible discoloration",d?C.sev+"%":"n/a","≥ "+RULES.dmg+"%",c1],
+   ["Humidity OR ozone",(h?A.h+"%":"n/a")+" / "+(o?A.o3+" µg/m³":"n/a"),"≥ "+RULES.hum+"% or ≥ "+RULES.o3+" µg/m³",c2],
+   ["Consistency score",String(conf),"≥ "+RULES.conf,c3]]}}
+function rulesHtml(R){const ic={pass:"✔",fail:"✖",unknown:"?"},cl={pass:"g",fail:"r",unknown:"y"};
+  return `<div class="sub2"><b>${tr("Rule check")}</b> <span class="note">(${R.ver}, ${tr("illustrative")})</span>`+R.checks.map(c=>`<div class="wb" style="grid-template-columns:1fr auto auto"><span>${tr(c[0])}</span><span>${c[1]} <small class="note">(${c[2]})</small></span><b class="${cl[c[3]]}">${ic[c[3]]} ${tr(c[3])}</b></div>`).join("")+`<p class="note">${tr("Demonstration rules, not insurance terms. The consistency score is a heuristic, not a probability.")}</p></div>`}
+function calc(){
+  const A=S.air,C=S.crop; if(!A||!C) return null;
+  const o3x=Math.max(0,A.o3-100)*.02;                       // ozone stress, heuristic
+  const yl=+(C.sev*.75+3.2+o3x).toFixed(1);                 // heuristic yield-loss model
+  const lo=Math.round(12*C.sev+80),hi=Math.round(18*C.sev+140);
+  let conf=80;const why=[];
+  if(C.cover<2){conf-=40;why.push("Little leaf area found in the photo")}
+  if(C.sev>=10&&A.h<45&&A.o3<80){conf-=35;why.push("Damage is high but humidity and ozone do not support it")}
+  if(C.sev>=10&&A.h>=70){conf+=10;why.push("High humidity supports fungal spread")}
+  if(A.cached){conf=Math.min(conf,40);why.push("Offline sample data, not a live reading")}
+  conf=Math.max(0,Math.min(100,conf));
+  const R=evalRules(A,C,conf),elig=R.elig;
+  return S.loss={yl,lo,hi,conf,why,elig,R};
 }
-const ST=[['Good','صاف'],['Moderate','درمیانہ'],['Unhealthy','غیر صحت بخش'],['Hazardous','خطرناک']];
-const st=v=>{const x=ST[v<25?0:v<50?1:v<75?2:3];return x[0]+' · '+x[1];};
-function share(){
-  const o=data.ai.overall,url=location.origin+location.pathname+'?city='+encodeURIComponent(data.city);
-  const txt=`🌍 CityAir: ${data.city}, ${data.country}\nPollution score: ${Math.round(o.score)}/100 (${st(o.score)})\nAQI: ${data.live.aqi??'-'} · PM2.5: ${data.live.pm25??'-'}\n${o.verdict[lang]}\n${url}`;
-  if(navigator.share){navigator.share({title:'CityAir',text:txt}).catch(()=>{});}
-  else window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
-}
-let rank=null;
-async function loadRank(){try{const r=await fetch('/api/rank');const d=await r.json();if(d.list){rank=d.list;more();}}catch(e){}}
-const topIssues=a=>K.map(k=>[k,a.items[k].score]).sort((x,y)=>y[1]-x[1]).slice(0,2).map(x=>T[lang].n[x[0]]+' '+Math.round(x[1])).join(', ');
-const hw=w=>{if(!w)return '-';const h=+w.from.slice(11,13),f=x=>{x%=24;return (x%12||12)+(x<12?' AM':' PM');};return f(h)+'–'+f(h+2)+' (AQI '+w.aqi+')';};
-function polData(L){return [['PM2.5',L.pm25,15],['PM10',L.pm10,45],['NO₂',L.no2,25],['O₃',L.o3,100],['SO₂',L.so2,40],['CO',L.co,4000]].filter(x=>typeof x[1]=='number').map(x=>({n:x[0],pct:x[1]/x[2]*100}));}
-function insights(t){
-  const L=data.live,cig=typeof L.pm25=='number'?(L.pm25/22).toFixed(1):'-',who=typeof L.pm25=='number'?(L.pm25/15).toFixed(1)+'×':'-';
-  return `<div class="stats" style="margin-top:16px"><div class="stat"><b>${cig}</b>${t.cig}</div><div class="stat"><b>${who}</b>${t.who}</div><div class="stat"><b style="font-size:18px">${hw(data.best)}</b>${t.best}</div><div class="stat"><b style="font-size:18px">${hw(data.worst)}</b>${t.worst}</div></div><p style="color:var(--mut);font-size:13px">${t.note}</p>`;}
-function polCard(t){const P=polData(data.live);if(!P.length)return '';const top=P.slice().sort((x,y)=>y.pct-x.pct)[0];return `<div class="card lc"><h3>${t.pol}</h3><div class="cv" style="height:240px"><canvas id="pol"></canvas></div><p>${t.main(top.n)}</p></div>`;}
-function recent(){try{return JSON.parse(localStorage.getItem('rc')||'[]')}catch(e){return[]}}
-function remember(c){try{localStorage.setItem('rc',JSON.stringify([c,...recent().filter(x=>x!=c)].slice(0,5)))}catch(e){}tags();}
-function tags(){const seen=new Set(),tc=c=>c.trim().replace(/\b\w/g,x=>x.toUpperCase());
-  const L=[...recent(),'Tokyo','Delhi','Lahore','Kasur','Karachi','London','New York'].map(tc).filter(c=>{const k=c.toLowerCase();if(!c||seen.has(k))return false;seen.add(k);return true;}).slice(0,10);
-  $('#tags').innerHTML=L.map(c=>`<button type="button" class="chip" data-c="${esc(c)}">${esc(c)}</button>`).join('');}
-function advice(a,L){const o=a.overall.score,I=a.items,A=T[lang].adv,out=[];
-  if(o>=75||I.air.score>=60)out.push(['r',A.noout]);
-  if(I.air.score>=40)out.push(['o',A.mask]);
-  if(I.water.score>=50)out.push(['o',A.water]);
-  if((L.temp??0)>=35)out.push(['o',A.heat]);
-  if(I.noise.score>=70)out.push(['y',A.noise]);
-  if(!out.length)out.push(['g',A.ok]);
-  return out;}
-function histNote(d){const h=d.history.map(x=>x.v),avg=h.slice(0,-1).reduce((s,v)=>s+v,0)/Math.max(1,h.length-1)||1,cur=d.live.aqi??h[h.length-1],df=Math.round((cur-avg)/avg*100);return T[lang].hn(Math.abs(df),df);}
-function extras(a,L,t){
-  let h=`<div class="adv">${advice(a,L).map(x=>`<div class="al ${x[0]}">${x[1]}</div>`).join('')}</div><button class="go" onclick="window.print()">⬇ ${t.dl}</button> <button class="go" type="button" onclick="share()">📤 ${t.share}</button>
-  ${insights(t)}<div class="two"><div class="card lc"><h3>${t.rad}</h3><div class="cv"><canvas id="rad"></canvas></div></div>`
-  +(data.history&&data.history.length>1?`<div class="card lc"><h3>${t.hist}</h3><div class="cv" style="height:200px"><canvas id="his"></canvas></div><p>${histNote(data)}</p></div>`:'')+polCard(t)+`</div>`;
-  if(data2){const b=data2.ai;h+=`<div class="card lc"><h3>${esc(data.city)} vs ${esc(data2.city)}</h3>`+K.map(k=>`<p>${t.n[k]}: <b style="color:${col(a.items[k].score)}">${Math.round(a.items[k].score)}</b> vs <b style="color:${col(b.items[k].score)}">${Math.round(b.items[k].score)}</b></p>`).join('')+`<p><b>${esc(a.overall.score<=b.overall.score?data.city:data2.city)}</b> ${t.cleaner}</p></div>`;}
-  return h;}
-function mk(id,c){const e=document.getElementById(id);if(!e)return;if(CH[id])CH[id].destroy();CH[id]=new Chart(e,c);}
-function draw(){
-  if(typeof Chart=='undefined')return;
-  Chart.defaults.font.family="'Comic Sans MS','Comic Neue',cursive";
-  const t=T[lang],a=data.ai,cs=getComputedStyle(document.documentElement),m=cs.getPropertyValue('--mut').trim(),g=cs.getPropertyValue('--bd').trim(),ax={ticks:{color:m},grid:{color:g}};
-  const IC={air:'💨',water:'💧',thermal:'🔥',land:'🌱',noise:'🔊',light:'💡',radioactive:'☢️'};
-  const ds=[{label:data.city,data:K.map(k=>a.items[k].score),backgroundColor:data2?'#e8a93a':K.map(k=>col(a.items[k].score)),borderRadius:6}];
-  if(data2)ds.push({label:data2.city,data:K.map(k=>data2.ai.items[k].score),backgroundColor:'#4aa8ff',borderRadius:6});
-  mk('rad',{type:'bar',data:{labels:K.map(k=>IC[k]+' '+t.n[k]),datasets:ds},options:{maintainAspectRatio:false,
-    scales:{y:{min:0,max:100,ticks:{color:m,stepSize:20},grid:{color:g}},x:{ticks:{color:m},grid:{display:false}}},
-    plugins:{legend:{display:!!data2,labels:{color:m}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+Math.round(c.parsed.y)+' / 100'}}}}});
-  if(data.history&&data.history.length>1)mk('his',{type:'line',data:{labels:data.history.map(x=>x.d.slice(5)),datasets:[{label:'US AQI',data:data.history.map(x=>x.v),borderColor:'#e5484d',backgroundColor:'rgba(229,72,77,.15)',fill:true,tension:.35,pointRadius:c=>c.dataIndex==data.history.length-1?6:3}]},options:{maintainAspectRatio:false,scales:{x:ax,y:ax},plugins:{legend:{display:false}}}});
-  const P=polData(data.live);
-  if(P.length)mk('pol',{type:'bar',data:{labels:P.map(x=>x.n),datasets:[{data:P.map(x=>x.pct),backgroundColor:P.map(x=>x.pct>100?'#e5484d':x.pct>50?'#f08a3c':'#3fb97a'),borderRadius:6}]},options:{indexAxis:'y',maintainAspectRatio:false,scales:{x:{min:0,ticks:{color:m,callback:v=>v+'%'},grid:{color:g}},y:{ticks:{color:m},grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>Math.round(c.parsed.x)+'% of WHO daily guideline'}}}}});
-  if(sel!='all'){const y=new Date().getFullYear(),f=a.items[sel].forecast;mk('fcc',{type:'line',data:{labels:f.map((_,j)=>y+j+1),datasets:[{label:t.n[sel],data:f,borderColor:col(f[4]),backgroundColor:'rgba(232,169,58,.15)',fill:true,tension:.3}]},options:{maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{color:m},grid:{color:g}},x:ax},plugins:{legend:{display:false}}}});}
-}
-function render(){
-  if(!data)return;
-  const t=T[lang],a=data.ai,L=data.live,o=a.overall,c=col(o.score),R=60,C=2*Math.PI*R;
-  let h=`<div class="top"><div class="gw"><div class="gauge"><svg width="150" height="150"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--bd)" stroke-width="12"/><circle cx="75" cy="75" r="${R}" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*o.score/100} ${C}"/></svg><div class="n">${Math.round(o.score)}</div></div><div class="bdg" style="color:${c};border-color:${c}">${st(o.score)}</div></div>
-  <div class="tx"><h2 style="margin:0">${esc(data.city)}, ${esc(data.country)}</h2><div style="color:var(--mut)">${t.overall}: ${esc(o.verdict[lang])}</div><div style="color:var(--mut);margin-top:4px">${t.top}: ${topIssues(a)}</div>
-  <div class="live"><span class="pill">${t.aqi}: ${L.aqi??'-'}</span><span class="pill">PM2.5: ${L.pm25??'-'}</span><span class="pill">${t.temp}: ${L.temp??'-'}°C</span>${L.feels!=null?`<span class="pill">${t.feels}: ${L.feels}°C</span>`:''}${L.uv!=null?`<span class="pill">UV: ${L.uv}</span>`:''}</div></div></div>`;
-  h+=extras(a,L,t)+`<div class="chips"><button class="chip ${sel=='all'?'on':''}" data-k="all">${t.all}</button>`+K.map(k=>`<button class="chip ${sel==k?'on':''}" data-k="${k}">${t.n[k]}</button>`).join('')+`</div>`;
-  const list=sel=='all'?K:[sel];
-  h+=`<div class="grid ${sel=='all'?'':'one'}">`+list.map(k=>{
-    const i=a.items[k],s=i.score,cc=col(s),full=sel!='all';
-    let x=`<div class="card" data-k="${k}"><h3>${t.n[k]}<span class="badge">${k=='air'?t.live:t.est}</span></h3>
-    <b style="color:${cc}">${esc(i.level[lang])} · ${Math.round(s)}/100</b><div class="bar"><i style="width:${s}%;background:${cc}"></i></div>${ul(i.points[lang])}`;
-    if(full){
-      const y=new Date().getFullYear(),d=det[k];
-      x+=`<h4>${t.fc}</h4><div class="cv" style="height:240px"><canvas id="fcc"></canvas></div><p><b>${i.forecast[4]>i.forecast[0]?'📈 '+t.up:i.forecast[4]<i.forecast[0]?'📉 '+t.dn:'➡️ '+t.fl}</b></p>`;
-      x+=d?`<h4>${t.causes}</h4>${ul(d.causes[lang])}<h4>${t.harm}</h4>${ul(d.harm[lang])}<h4>${t.out}</h4>${ul(d.outlook[lang].map((z,j)=>'<b>'+(y+j+1)+':</b> '+esc(z)),1)}<h4>${t.steps}</h4>${ul(d.steps[lang])}`:`<p>${t.ld}</p>`;
-    }else x+=`<small style="color:var(--mut)">${t.tap}</small>`;
-    return x+'</div>';
-  }).join('')+'</div>';
-  $('#out').innerHTML=h;draw();
-}
-$('#out').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-k]');if(!b)return;sel=b.dataset.k;render();
-  if(sel!='all'&&!det[sel]){const k=sel;
-    try{const r=await fetch('/api/city?city='+encodeURIComponent(data.city)+'&type='+k);const x=await r.text();let d;try{d=JSON.parse(x)}catch(e){throw new Error(NOJSON)}if(!r.ok)throw new Error(d.error);det[k]=d.ai;$('#status').textContent='';}
-    catch(err){$('#status').textContent='Error: '+err.message;}
-    render();}
-});
-$('#lg').onclick=()=>{lang=lang=='en'?'ur':'en';ui();};
-$('#th').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme=='dark'?'light':'dark';ui();};
-const NOJSON='The server took too long or had a problem. Please try again in a moment.';
-async function load(q){const r=await fetch('/api/city?city='+encodeURIComponent(q));const x=await r.text();let d;try{d=JSON.parse(x)}catch(e){throw new Error(NOJSON)}if(!r.ok)throw new Error(d.error);return d;}
-$('#f').onsubmit=async e=>{
-  e.preventDefault();const q=$('#q').value.trim(),q2=$('#q2').value.trim();if(!q)return;
-  $('#status').textContent=T[lang].load;$('#out').innerHTML='';sel='all';det={};data2=null;
-  try{[data,data2]=await Promise.all([load(q),q2?load(q2):null]);$('#status').textContent='';remember(data.city);render();$('#out').scrollIntoView({behavior:'smooth'});}
-  catch(err){$('#status').textContent='Error: '+err.message;}
-};
-$('#more').onclick=e=>{const b=e.target.closest('[data-c]');if(b){$('#q').value=b.dataset.c;$('#q2').value='';window.scrollTo({top:0,behavior:'smooth'});$('#f').requestSubmit();}};
-$('#tags').onclick=e=>{const b=e.target.closest('[data-c]');if(b){$('#q').value=b.dataset.c;$('#q2').value='';$('#f').requestSubmit();}};
-$('#loc').onclick=()=>{
-  if(!navigator.geolocation){$('#status').textContent='Location is not supported on this device';return;}
-  $('#status').textContent=T[lang].load;
-  navigator.geolocation.getCurrentPosition(async p=>{
-    try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${p.coords.latitude}&longitude=${p.coords.longitude}&localityLanguage=en`);const d=await r.json();const c=d.city||d.locality||d.principalSubdivision;if(!c)throw 0;$('#q').value=c;$('#q2').value='';$('#f').requestSubmit();}
-    catch(e){$('#status').textContent='Could not find your city';}
-  },()=>{$('#status').textContent='Location permission was denied';});
-};
-ui();loadRank();
-const qp=new URLSearchParams(location.search).get('city');if(qp){$('#q').value=qp;$('#f').requestSubmit();}
+const PN="Payout rule: damage of 10% or more, plus humidity of 70% or more or ozone of 100 µg/m³ or more, plus a trust score of 60 or more. Loss formulas are heuristics for demonstration. Treatment notes are general guidance, so confirm products and rates with a local agriculture extension officer.";UR[PN]="ادائیگی کا اصول: نقصان ۱۰ فیصد یا زیادہ ہو، نمی ۷۰ فیصد یا زیادہ (یا اوزون ۱۰۰ µg/m³ یا زیادہ) ہو، اور اعتماد کا اسکور ۶۰ یا زیادہ ہو۔ نقصان کے فارمولے صرف مظاہرے کے لیے اندازے ہیں۔ علاج کی ہدایات عمومی ہیں، پروڈکٹ اور مقدار مقامی محکمہ زراعت کے افسر سے ضرور پوچھیں۔";
+function renderLoss(){const L=calc(),b=$("lossBox");
+  if(!L){b.innerHTML='<p class="note">Run the air check and the crop scan first.</p><button class="btn pri" data-p="heat" style="border-radius:999px">'+tr("Quick-fill with demo scenario")+'</button>';return}
+  if(!S.audited){b.innerHTML='<p class="note">'+tr("Both results are ready.")+'</p><button class="btn pri" id="runAudit">'+tr("Run Parametric Loss Audit")+' <span class="ar">→</span></button>';return}
+  const A=S.air,C=S.crop,TT=LG==="ur"?TXU:TX,T=TT[C.name]||TT.other,dp=(A.t-(100-A.h)/5).toFixed(1),sick=C.sev>=1;
+  b.innerHTML=`<div class="kpis">${k(L.yl+"%","Illustrative yield loss",L.yl>15?"r":"y")}${k("$"+L.lo+"–"+L.hi,"Illustrative loss per acre")}${k(L.conf+"/100","Consistency score",L.conf>=60?"g":"r")}${k(L.R.res==="ELIGIBLE"?"Eligible":L.R.res==="NOT EVALUABLE"?"Not evaluable":"Not eligible","Parametric payout",L.elig?"g":"y")}</div>
+  <p class="note">${L.why.map(tr).join(". ")||tr("No consistency flags.")}</p>${rulesHtml(L.R)}
+  <h3>${sick?T.d:tr("Healthy leaf")} (${C.name})</h3>
+  ${sick?`<button class="btn gh" id="speak" style="border-radius:999px">${tr("🔊 Listen to Agronomic Advisory")}</button><div class="plan"><div><b>${tr("Chemical protocol")}</b><p class="note">${T.chem}</p></div><div><b>${tr("Cultural controls")}</b><p class="note">${T.cult}</p></div><div><b>${tr("Preventative action")}</b><p class="note">${T.prev} Dew point now is about ${dp}°C at ${A.h}% humidity.</p></div></div>`:'<p class="note">No treatment needed. Rescan in a few days.</p>'}
+  <p class="note">${tr(PN)}</p>`}
+
+// ---- 4. ledger ----
+let chain=[];try{chain=JSON.parse(localStorage.getItem("cs_chain4")||"[]")}catch{}
+const save=()=>{try{localStorage.setItem("cs_chain4",JSON.stringify(chain))}catch{}};
+async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+const FIELDS=["sch","id","i","ts","city","crop","dis","lat","lon","aqi","pm25","o3","t","h","sev","loss","conf","elig","src","obs","rv","prev"];
+const body=b=>JSON.stringify(FIELDS.map(k=>b[k]===undefined?null:b[k]));
+const uid=()=>crypto.randomUUID?crypto.randomUUID():[...crypto.getRandomValues(new Uint8Array(8))].map(x=>x.toString(16).padStart(2,"0")).join("");
+async function validate(c){for(let i=0;i<c.length;i++){
+  if(await sha(body(c[i]))!==c[i].hash) return i+1;
+  if(c[i].prev!==(i?c[i-1].hash:"0".repeat(64))) return i+1}return 0}
+async function mint(){const L=calc(),A=S.air,C=S.crop;
+  if(!L){$("lMsg").textContent="Run the air check and the crop scan first.";return}
+  const b={sch:"1.0",id:"CS-"+uid().replace(/-/g,"").slice(0,12).toUpperCase(),obs:A.obs||"n/a",rv:RULES.ver,i:chain.length+1,ts:new Date().toISOString(),city:A.city,crop:C.name,dis:C.sev<1?"Healthy":(TX[C.name]||TX.other).d,lat:A.lat,lon:A.lon,aqi:A.aqi,pm25:A.pm25,o3:A.o3,t:A.t,h:A.h,sev:C.sev,loss:L.yl,conf:L.conf,elig:L.elig,src:A.cached?"offline":A.demo?"demo":"live",prev:chain.length?chain[chain.length-1].hash:"0".repeat(64)};
+  b.hash=await sha(body(b));chain.push(b);save();renderChain();$("lMsg").textContent="Block "+b.i+" created."}
+$("mk").onclick=mint;
+const TAMP={};
+const LOCK='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8ea39a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const BRK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" aria-label="Broken chain"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/><path d="M4 4l16 16"/></svg>';
+async function renderChain(){const bad=await validate(chain);let rows="";const hit=[];
+  for(const b of chain){const t=TAMP[b.i];let dmg=b.sev+"%",st="";
+    if(t){const f={...b,sev:+(b.sev+15).toFixed(1)},rh=await sha(body(f));dmg=f.sev+"%";hit.push(b.i);st=`<br><small class="r">recalculated ${rh.slice(0,10)}… ≠ ${b.hash.slice(0,10)}…</small>`}
+    rows+=`<tr class="${t?"bad":""}"><td>${b.i}</td><td>${b.city}, ${b.crop}</td><td>${dmg}</td><td>${b.conf}</td><td>${b.elig&&!t?"Yes":"No"}</td><td><code>${b.hash.slice(0,14)}…</code>${st}</td><td>${b.tx?`<a target="_blank" rel="noopener" href="https://amoy.polygonscan.com/tx/${b.tx}">${b.tx.slice(0,10)}…</a>`:"–"}</td><td>${t?BRK+' <button class="btn sm" data-rs="'+b.i+'">'+tr("Restore original")+'</button>':'<button class="btn sm gh" data-tp="'+b.i+'">'+tr("Simulate tamper")+'</button>'}</td></tr>`}
+  $("rows").innerHTML=rows||`<tr><td colspan="8" class="empty">${LOCK}<br>${tr("No blocks minted yet")}</td></tr>`;
+  if(hit.length)$("lMsg").innerHTML=`<div class="warn r">⚠️ Tamper detected in block ${hit.join(", ")}. Hash recalculation failed: the data no longer matches the recorded hash, so this certificate is invalid and the payout claim is rejected. First invalid block: ${hit[0]}.${chain.length>hit[0]?" If the hash were also recomputed, the links of the "+(chain.length-hit[0])+" later block(s) would break.":""}</div>`;
+  else if(chain.length)$("lMsg").innerHTML=bad?`<span class="r">${tr("Chain broken at block")} ${bad}.</span>`:'<span class="g">'+tr("Chain valid. All hashes match.")+'</span>'}
+$("rows").onclick=e=>{const t=e.target.closest("[data-tp]"),r=e.target.closest("[data-rs]");
+  if(t){TAMP[t.dataset.tp]=true;renderChain()}
+  else if(r){delete TAMP[r.dataset.rs];renderChain().then(()=>$("lMsg").insertAdjacentHTML("beforeend"," Original restored and re-verified."))}};
+$("tam").onclick=()=>{if(!chain.length){$("lMsg").textContent="Create a block first.";return}TAMP[chain[chain.length-1].i]=true;renderChain()};
+$("vb").onclick=async()=>{const q=$("vh").value.trim().toLowerCase(),b=chain.find(x=>q&&x.hash.startsWith(q));
+  if(!b){$("vr").textContent="No block with that hash in this browser.";return}
+  const ok=await sha(body(b))===b.hash;$("vr").innerHTML=ok?`<span class="g">Valid. Block ${b.i} data is untampered.</span>`:'<span class="r">Invalid. Data does not match the hash.</span>'};
+$("anc").onclick=async()=>{const b=chain[chain.length-1],m=$("lMsg");
+  if(!b){m.textContent="Create a block first.";return}
+  if(!CONTRACT){m.innerHTML='Contract address not configured yet. <a target="_blank" rel="noopener" href="https://amoy.polygonscan.com/">Open Polygon Amoy explorer</a>';return}
+  if(!window.ethereum){m.innerHTML='Install MetaMask to anchor on-chain. <a target="_blank" rel="noopener" href="https://amoy.polygonscan.com/">Open Polygon Amoy explorer</a>';return}
+  try{m.textContent="Confirm in your wallet…";
+    try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x13882"}]})}
+    catch{await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0x13882",chainName:"Polygon Amoy",nativeCurrency:{name:"POL",symbol:"POL",decimals:18},rpcUrls:["https://rpc-amoy.polygon.technology"],blockExplorerUrls:["https://amoy.polygonscan.com"]}]})}
+    const s=await new ethers.BrowserProvider(ethereum).getSigner();
+    const tx=await new ethers.Contract(CONTRACT,["function anchor(bytes32,bool)"],s).anchor("0x"+b.hash,b.elig);
+    await tx.wait();b.tx=tx.hash;save();renderChain();m.innerHTML='Anchored on Polygon Amoy. <a target="_blank" rel="noopener" href="https://amoy.polygonscan.com/tx/'+tx.hash+'">View transaction</a>';netBadge()}
+  catch{m.textContent="Transaction failed or was cancelled. Check that your wallet has test POL."}};
+function certOf(b){const o={};FIELDS.forEach(k=>o[k]=b[k]===undefined?null:b[k]);
+  return{schema:"climasphere-evidence/"+b.sch,hashAlgorithm:"SHA-256",hashedFields:FIELDS,record:o,hash:b.hash,
+   anchor:b.tx?{status:"confirmed",network:"Polygon Amoy",chainId:80002,contract:CONTRACT,tx:b.tx}:{status:"not anchored on blockchain"},
+   notes:"The hash shows this record is unchanged since it was created. It does not prove the original measurements are true or who submitted them. Demonstration rules, not an insurance decision."}}
+$("cert").onclick=()=>{const b=chain[chain.length-1];if(!b){$("lMsg").textContent="Create a block first.";return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(certOf(b),null,2)],{type:"application/json"}));a.download="climasphere-certificate-"+b.id+".json";a.click()};
+async function verifyCert(t){let c;try{c=JSON.parse(t)}catch{return["r","Invalid certificate format: not valid JSON."]}
+  if(!c||typeof c!=="object"||!c.record||typeof c.hash!=="string"||!/^[0-9a-f]{64}$/.test(c.hash))return["r","Invalid certificate format."];
+  if(c.schema!=="climasphere-evidence/1.0")return["y","Unsupported certificate version."];
+  if(!Array.isArray(c.hashedFields)||c.hashedFields.join()!==FIELDS.join())return["r","Invalid certificate format: hashed fields do not match schema 1.0."];
+  return await sha(body(c.record))===c.hash?["g","Integrity verified: the record matches its hash. This does not prove the measurements are true. Blockchain proof: "+(c.anchor&&c.anchor.tx?"a transaction is recorded but was not independently checked here.":"unavailable, not anchored.")]:["r","Integrity verification failed: the record does not match its hash."]}
+$("vcb").onclick=async()=>{const[cl,m]=await verifyCert($("vc").value);$("vcr").innerHTML='<span class="'+cl+'">'+m+'</span>'};
+
+// ---- English / Urdu ----
+const I={en:{h1:"Climate evidence you can <em>verify on-chain.</em>",sub:"Real-time weather telemetry, AI-assisted foliage risk scans and automated eligibility certificates anchored to a tamper-proof public blockchain.",t1:"Ingest air and weather",t2:"Computer vision crop scan",t3:"Parametric loss evaluation",t4:"Mint ledger certificate",go:"Check city",smp:"Load infected sample",smpH:"Load healthy leaf",mk:"Create certificate block",anc:"Anchor last block on Polygon Amoy",tam:"Run tamper test",cert:"Download certificate",vb:"Verify hash",c1:"City",c2:"Damage",c3:"Trust",c4:"Payout",c5:"Hash",c6:"On-chain",v1:"Diagnostic overlay",v2:"Lesion mask",v3:"Raw photo",demo1:"⚡ Run Complete End-to-End Audit (1-Click Demo)",cp1:"Agronomist co-pilot",cp2:"Pre-written expert guidance, not a live AI.",ask:"Ask",b1:"Step 01",b2:"Step 02",b3:"Step 03",b4:"Step 04",
+s1:"Step 1: Ingest Air & Weather",s2:"Step 2: Computer Vision Crop Scan",s3:"Step 3: Parametric Loss Evaluation",s4:"Step 4: Mint Ledger Certificate",
+d1:"Enter your city name. The system instantly checks real-time heat, humidity and pollution to see if the weather is harming crops.",
+d2:"Upload a photo of a crop leaf. The scan measures what percentage of the leaf is damaged, brown or yellow.",
+d3:"Weather and leaf damage are combined automatically to estimate how much of the harvest is lost and whether a payout is due.",
+d4:"The full result is locked into a tamper-proof record you can anchor on the blockchain, with a downloadable certificate anyone can verify."},
+ur:{h1:"موسمیاتی شواہد جن کی آپ بلاک چین پر <em>تصدیق</em> کر سکتے ہیں۔",sub:"حقیقی وقت کا موسمی ڈیٹا، پتوں کے خطرے کا اسکین اور خودکار اہلیت کے سرٹیفکیٹ، جو چھیڑ چھاڑ سے محفوظ عوامی بلاک چین پر درج کیے جاتے ہیں۔",t1:"ہوا اور موسم کا ڈیٹا",t2:"کمپیوٹر وژن فصل اسکین",t3:"پیرامیٹرک نقصان کی جانچ",t4:"لیجر سرٹیفکیٹ بنائیں",go:"شہر چیک کریں",smp:"متاثرہ نمونہ لوڈ کریں",smpH:"صحت مند پتا لوڈ کریں",mk:"سرٹیفکیٹ بلاک بنائیں",anc:"آخری بلاک بلاک چین پر درج کریں",tam:"چھیڑ چھاڑ کا ٹیسٹ",cert:"سرٹیفکیٹ ڈاؤن لوڈ کریں",vb:"ہیش کی تصدیق کریں",c1:"شہر",c2:"نقصان",c3:"اعتماد",c4:"ادائیگی",c5:"ہیش",c6:"بلاک چین",v1:"تشخیصی اوورلے",v2:"زخم کا ماسک",v3:"اصل تصویر",demo1:"⚡ مکمل آڈٹ ایک کلک میں چلائیں (ڈیمو)",cp1:"زرعی ماہر معاون",cp2:"پہلے سے لکھی ہوئی ماہرانہ رہنمائی، براہِ راست AI نہیں۔",ask:"پوچھیں",b1:"مرحلہ ۰۱",b2:"مرحلہ ۰۲",b3:"مرحلہ ۰۳",b4:"مرحلہ ۰۴",
+s1:"مرحلہ ۱: ہوا اور موسم کا ڈیٹا",s2:"مرحلہ ۲: کمپیوٹر وژن فصل اسکین",s3:"مرحلہ ۳: پیرامیٹرک نقصان کی جانچ",s4:"مرحلہ ۴: لیجر سرٹیفکیٹ بنائیں",
+d1:"اپنے شہر کا نام لکھیں۔ سسٹم فوراً گرمی، نمی اور آلودگی چیک کرتا ہے تاکہ پتا چلے کہ موسم فصل کو نقصان تو نہیں پہنچا رہا۔",
+d2:"فصل کے پتے کی تصویر اپلوڈ کریں۔ اسکین بتاتا ہے کہ پتے کا کتنے فیصد حصہ خراب، بھورا یا پیلا ہے۔",
+d3:"موسم اور پتے کے نقصان کو ملا کر سسٹم خود حساب لگاتا ہے کہ فصل کا کتنا نقصان ہوا اور ادائیگی بنتی ہے یا نہیں۔",
+d4:"پورا نتیجہ ایک ایسے ریکارڈ میں محفوظ ہو جاتا ہے جسے بدلا نہیں جا سکتا۔ آپ اسے بلاک چین پر درج کر کے تصدیق شدہ سرٹیفکیٹ ڈاؤن لوڈ کر سکتے ہیں۔"}};
+let LG="en";
+function applyLang(){document.documentElement.dir=LG==="ur"?"rtl":"ltr";document.documentElement.lang=LG;
+  document.querySelectorAll("[data-i]").forEach(e=>e.innerHTML=I[LG][e.dataset.i]);$("lang").textContent=LG==="en"?"EN / اردو":"اردو / EN";renderAir();renderCropK();renderChain();if($("t-loss").classList.contains("on"))renderLoss();show(ji);renderQA();if(!$("mdl").hidden&&MN)openM(MN)}
+$("lang").onclick=()=>{LG=LG==="en"?"ur":"en";applyLang()};
+document.querySelectorAll("[data-go]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();goStep(a.dataset.go)}));
+// ---- auto-playing journey (3 s per step, manual click pauses 5 s) ----
+const G='style="filter:drop-shadow(0 0 14px rgba(%s,.5))"';
+const J=[
+{t:"Ingest Air & Weather",ut:"موسمیاتی ٹیلی میٹری",nl:"Ingest",un:"حاصل",go:"air",
+ d:"Enter any city, like Lahore or Kasur. The app fetches live AQI, PM2.5, ozone, temperature and humidity from Open-Meteo.",
+ v:`<svg viewBox="0 0 120 100" ${G.replace("%s","239,68,68")}><circle class="pulse" cx="42" cy="38" r="20" fill="#f59e0b"/><path d="M38 80h54a16 16 0 0 0 0-32 22 22 0 0 0-42-6A18 18 0 0 0 38 80z" fill="#17211d" stroke="#f87171" stroke-width="2"/></svg>`,
+ p:`<div class="note">City</div><span class="chip">Lahore</span><div style="margin-top:12px"><span class="chip w">41°C Heatwave</span><span class="chip w">PM2.5: 182 µg/m³</span><span class="chip w">Ozone: Elevated</span></div>`},
+{t:"Computer Vision Crop Scan",ut:"فصل اور پتوں کا اسکین",nl:"Scan",un:"اسکین",go:"crop",
+ d:"Upload a leaf photo or load a sample. In-browser HSV segmentation separates healthy green tissue from brown and yellow damage.",
+ v:`<svg viewBox="0 0 120 100" ${G.replace("%s","16,185,129")}><path d="M20 80C20 35 50 12 100 14c2 44-24 70-80 66z" fill="#14532d" stroke="#10b981" stroke-width="2"/><path d="M24 78C45 55 62 40 90 24" stroke="#34d399" stroke-width="2" fill="none"/><rect class="laser" x="14" y="6" width="3" height="88" rx="1.5" fill="#6ee7b7"/></svg>`,
+ p:`<button class="chip on" data-m="">Original leaf view</button><button class="chip" data-m="mask">HSV mask overlay</button><div class="leafm" id="lm"></div><b>Leaf stress: 68% foliage damage detected</b>`},
+{t:"Parametric Loss Evaluation",ut:"نقصان اور معاوضے کا تخمینہ",nl:"Audit",un:"جانچ",go:"loss",
+ d:"Weather data and leaf damage are checked against threshold rules to estimate yield loss, a trust score and payout eligibility.",
+ v:`<svg viewBox="0 0 120 100" ${G.replace("%s","45,212,191")}><rect class="bar4" x="14" y="50" width="18" height="40" rx="4" fill="#2dd4bf"/><rect class="bar4" x="40" y="30" width="18" height="60" rx="4" fill="#14b8a6" style="animation-delay:.2s"/><rect class="bar4" x="66" y="42" width="18" height="48" rx="4" fill="#2dd4bf" style="animation-delay:.4s"/><rect class="bar4" x="92" y="14" width="18" height="76" rx="4" fill="#10b981" style="animation-delay:.6s"/></svg>`,
+ p:`<b>Calculated yield loss: 54%</b><div class="gauge"><i style="width:54%"></i></div><span class="chip">Eligible for payout · Trust score 94/100</span><div class="note" style="margin-top:10px">Trigger met: damage 10% or more, humidity 70% or more (or ozone 100 µg/m³ or more), trust score 60 or more.</div>`},
+{t:"Mint Ledger Certificate",ut:"بلاک چین پر مستقل ریکارڈ",nl:"Anchor",un:"درج",go:"ledger",
+ d:"The audit is sealed into a SHA-256 hash-chained block, which you can anchor on Polygon Amoy, tamper-test and download as a certificate.",
+ v:`<svg viewBox="0 0 120 100" ${G.replace("%s","16,185,129")}><circle class="pulse" cx="60" cy="50" r="40" fill="none" stroke="#10b981" stroke-opacity=".5" stroke-width="2"/><path d="M60 14l30 10v22c0 20-13 33-30 40-17-7-30-20-30-40V24z" fill="#064e3b" stroke="#34d399" stroke-width="2.5"/><path d="M46 50l10 10 18-20" fill="none" stroke="#6ee7b7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ p:`<div class="note">Block hash</div><code>0x7f8a9…b412</code><div style="margin:12px 0"><span class="chip">Anchor on Polygon Amoy</span><span class="chip">Run tamper test</span><span class="chip">Download certificate</span></div><span class="chip">Integrity verified · 0 tamper detected</span>`}];
+let ji=0,jPause=0,jOn=false,jHover=false,jEl=0;
+function show(i){ji=i;jEl=0;const j=J[i],ur=LG==="ur";
+  $("jv").innerHTML=j.v;
+  $("jl").innerHTML=`<span class="pill">${ur?"مرحلہ":"Step"} 0${i+1}</span><h3>${ur?j.ut:j.t}</h3><p>${j.d}</p><a class="cta-s" href="#how" data-go="${j.go}">${ur?"خود آزمائیں":"Try this step"} <span class="ar">→</span></a>`;
+  $("jp").innerHTML=j.p+'<p class="note" style="margin:14px 0 0">Illustrative example, not a live reading.</p>';
+  [...$("jt").children].forEach((b,k)=>{b.textContent=ur?J[k].un:J[k].nl;b.classList.toggle("on",k===i);b.classList.toggle("done",k<i)});
+  $("jt").style.setProperty("--p",i/3);$("jb").style.width="0%"}
+$("jt").onclick=e=>{const b=e.target.closest("button");if(!b)return;show(+b.dataset.j);jPause=performance.now()+5000};
+$("jl").onclick=e=>{const a=e.target.closest("[data-go]");if(a){e.preventDefault();goStep(a.dataset.go)}};
+$("jp").onclick=e=>{const m=e.target.closest("[data-m]");if(!m)return;jPause=performance.now()+5000;$("lm").className="leafm "+m.dataset.m;$("jp").querySelectorAll("[data-m]").forEach(c=>c.classList.toggle("on",c===m))};
+$("journey").onmouseenter=()=>jHover=true;$("journey").onmouseleave=()=>jHover=false;
+const jReduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+new IntersectionObserver(en=>{jOn=en[0].isIntersecting&&!jReduce},{threshold:.35}).observe($("journey"));
+setInterval(()=>{if(!jOn||jHover||document.hidden||performance.now()<jPause)return;jEl+=50;
+  $("jb").style.width=Math.min(jEl/3000,1)*100+"%";if(jEl>=3000)show((ji+1)%4)},50);
+function speak(){if(!("speechSynthesis" in window)||!S.crop)return;const ur=LG==="ur",TT=ur?TXU:TX,T=TT[S.crop.name]||TT.other,u=new SpeechSynthesisUtterance([T.chem,T.cult,T.prev].join(" "));
+  u.lang=ur?"ur-PK":"en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}
+$("lossBox").onclick=e=>{if(e.target.closest("#speak"))speak();if(e.target.closest("#runAudit")){S.audited=true;renderLoss()}};
+const PRE={heat:{a:{city:"Multan",lat:30.157,lon:71.524,aqi:175,pm25:95,pm10:150,o3:135,no2:38,so2:10,t:44,h:38,pmMax:120},c:"tomato",s:"tomato"},
+ wheat:{a:{city:"Kasur",lat:31.12,lon:74.45,aqi:90,pm25:30,pm10:60,o3:60,no2:20,so2:5,t:32,h:55,pmMax:45},c:"wheat",s:"healthy"}};
+async function runDemo(){const bt=$("demo1");bt.disabled=true;
+  S.air={...PRE.heat.a,demo:true};$("crop").value="banana";sample("banana");S.audited=true;renderAir();
+  $("airMsg").textContent="Demo scenario loaded. Illustrative data, not a live reading.";
+  await mint();await renderChain();
+  $("lMsg").innerHTML='<span class="g">✔ End-to-end audit complete. Block #'+chain[chain.length-1].i+' minted and hash-chained.</span>';
+  goStep("ledger");bt.disabled=false}
+$("demo1").onclick=runDemo;
+function preset(k){const P=PRE[k];S.air={...P.a,demo:true};$("crop").value=P.c;sample(P.s);S.audited=true;renderAir();
+  $("airMsg").textContent="Demo scenario loaded. Illustrative data, not a live reading.";goStep("loss")}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(b)preset(b.dataset.p)});
+async function netBadge(){const n=$("net");let t="Target network: Polygon Amoy Testnet (Chain ID 80002)";
+  try{if(window.ethereum){const id=await ethereum.request({method:"eth_chainId"});t=id==="0x13882"?"Connected: Polygon Amoy Testnet (Chain ID 80002)":"Wallet is on another network. Anchoring will switch to Polygon Amoy (Chain ID 80002)"}}catch{}
+  n.textContent=t;n.classList.toggle("on",t.startsWith("Connected"));
+  if(CONTRACT){const c=$("ctr");c.href="https://amoy.polygonscan.com/address/"+CONTRACT;c.hidden=false}}
+if(window.ethereum&&ethereum.on)ethereum.on("chainChanged",netBadge);
+netBadge();
+show(0);
+applyLang();
+renderChain();
 </script>
 </body>
 </html>
