@@ -259,13 +259,14 @@ function render(){
 $('#out').addEventListener('click',async e=>{
   const b=e.target.closest('[data-k]');if(!b)return;sel=b.dataset.k;render();
   if(sel!='all'&&!det[sel]){const k=sel;
-    try{const r=await fetch('/api/city?city='+encodeURIComponent(data.city)+'&type='+k);const d=await r.json();if(!r.ok)throw new Error(d.error);det[k]=d.ai;$('#status').textContent='';}
+    try{const r=await fetch('/api/city?city='+encodeURIComponent(data.city)+'&type='+k);const x=await r.text();let d;try{d=JSON.parse(x)}catch(e){throw new Error(NOJSON)}if(!r.ok)throw new Error(d.error);det[k]=d.ai;$('#status').textContent='';}
     catch(err){$('#status').textContent='Error: '+err.message;}
     render();}
 });
 $('#lg').onclick=()=>{lang=lang=='en'?'ur':'en';ui();};
 $('#th').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme=='dark'?'light':'dark';ui();};
-async function load(q){const r=await fetch('/api/city?city='+encodeURIComponent(q));const d=await r.json();if(!r.ok)throw new Error(d.error);return d;}
+const NOJSON='The server took too long or had a problem. Please try again in a moment.';
+async function load(q){const r=await fetch('/api/city?city='+encodeURIComponent(q));const x=await r.text();let d;try{d=JSON.parse(x)}catch(e){throw new Error(NOJSON)}if(!r.ok)throw new Error(d.error);return d;}
 $('#f').onsubmit=async e=>{
   e.preventDefault();const q=$('#q').value.trim(),q2=$('#q2').value.trim();if(!q)return;
   $('#status').textContent=T[lang].load;$('#out').innerHTML='';sel='all';det={};data2=null;
