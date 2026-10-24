@@ -12,6 +12,9 @@ const WEIGHTS = { air: 0.30, water: 0.20, thermal: 0.12, land: 0.12, noise: 0.12
 // Verified nuclear / radiological hotspots: only these may get radiation above 5/100
 const HOTSPOT = /pripyat|chernobyl|fukushima|okuma|futaba|ozyorsk|kyshtym|hanford|richland|sellafield|semey|semipalatinsk|mailuu/i;
 
+const jf = (u) => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+const BUDGET = +process.env.AI_BUDGET_MS || 48000; // total time allowed for the AI step (Vercel limit is 60s)
+
 // ---------- small helpers ----------
 const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 const hash = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
@@ -62,18 +65,19 @@ const validDetail = (a) => a && ['causes', 'harm', 'steps'].every(k => arr(a[k],
 
 // ---------- Ask Gemini (system instruction + retry + backup models) ----------
 // Returns a valid object, or null if every model is busy / returns bad data.
-async function ask(system, prompt, valid) {
+async function ask(system, prompt, valid, deadline) {
   const models = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'].filter(Boolean);
   const started = Date.now();
   for (const m of models) {
     for (let a = 0; a < 2; a++) {
-      if (Date.now() - started > 45000) return null;
+      if (deadline - Date.now() < 3000) return null; // not enough time left: use the safe fallback
       try {
         const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${process.env.GEMINI_API_KEY}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(Math.min(25000, deadline - Date.now() - 500)),
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: system }] },
               contents: [{ parts: [{ text: prompt }] }],
@@ -96,11 +100,12 @@ async function ask(system, prompt, valid) {
         }
         const code = d.error && d.error.code;
         console.error('Gemini error', m, code, d.error && d.error.message);
-        if ([400, 401, 403].includes(code)) throw new Error('API key problem: ' + d.error.message);
+        if ([401, 403].includes(code) || (code === 400 && /api key/i.test(d.error.message || ''))) throw new Error('API key problem: ' + d.error.message);
         if (code && ![429, 500, 503, 504].includes(code)) break; // wrong model name: next model
       } catch (e) {
         if (String(e.message).startsWith('API key problem')) throw e;
-        console.error('Request failed', m, e.message);
+        console.error('Request failed', m, e.name, e.message);
+        if (e.name === 'TimeoutError' || e.name === 'AbortError') break; // model too slow: try the next one
       }
       await new Promise(s => setTimeout(s, 1200));
     }
@@ -190,22 +195,23 @@ GROUNDING RULES
 
 module.exports = async (req, res) => {
   try {
+    const T0 = Date.now();
     const city = (req.query.city || '').trim();
     const type = (req.query.type || '').trim();
     if (!city) return res.status(400).json({ error: 'City required' });
     if (city.length > 60 || !/^[\p{L}\p{N}\s.,'’()-]+$/u.test(city)) return res.status(400).json({ error: 'Please enter a valid city name' });
 
     const g = await (await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`, { signal: AbortSignal.timeout(8000) }
     )).json();
     const p = g.results && g.results[0];
     if (!p) return res.status(404).json({ error: 'City not found' });
 
     const [aq, wx, hs, ex] = await Promise.all([
-      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide`).then(r => r.json()),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`).then(r => r.json()),
-      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=2&timezone=auto`).then(r => r.json()).catch(() => ({})),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=apparent_temperature,uv_index`).then(r => r.json()).catch(() => ({}))
+      jf(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide`),
+      jf(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`),
+      jf(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=2&timezone=auto`).catch(() => ({})),
+      jf(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=apparent_temperature,uv_index`).catch(() => ({}))
     ]);
     const live = {
       aqi: aq.current && aq.current.us_aqi,
@@ -242,13 +248,13 @@ module.exports = async (req, res) => {
       const list = (n) => `{"en":[${n} strings],"ur":[${n} strings]}`;
       ai = await ask(system, `Topic: ${type} pollution in ${p.name}.
 Return ONLY JSON: {"causes":${list('5 or more')},"harm":${list('5 or more')},"outlook":{"en":[5 strings, one for each of the next 5 years, saying what will likely happen],"ur":[5 strings]},"steps":${list('6 or more')}}
-"causes" = why this pollution happens here. "harm" = how it hurts people, animals and nature. "outlook" = the 5-year trend. "steps" = actionable advice, some for ordinary citizens and some for the government.${type === 'air' ? ' Use the real AQI and PM2.5 numbers in your explanation.' : ''}`, validDetail);
+"causes" = why this pollution happens here. "harm" = how it hurts people, animals and nature. "outlook" = the 5-year trend. "steps" = actionable advice, some for ordinary citizens and some for the government.${type === 'air' ? ' Use the real AQI and PM2.5 numbers in your explanation.' : ''}`, validDetail, T0 + BUDGET);
       ok = !!ai;
       if (!ai) ai = fallbackDetail();
     } else {
       const item = '{"score":0,"level":{"en":"","ur":""},"points":{"en":["","","","",""],"ur":["","","","",""]},"forecast":[0,0,0,0,0]}';
       ai = await ask(system, `Return ONLY JSON: {"overall":{"score":0,"verdict":{"en":"","ur":""}},"items":{${TYPES.map(k => `"${k}":${item}`).join(',')}}}
-"score" is the pollution level 0-100 (for "air" use exactly ${airScore}). "forecast" = predicted score for each of the next 5 years. "level" is one or two words. "points" = exactly 5 short bullet points for that pollution in ${p.name}: what it is, how bad it is here, who is hurt most, how it affects daily life, and one actionable tip for citizens. For water, land, noise, light and radiation, say in one bullet that it is an estimate. "verdict" is one simple sentence about the overall situation.`, validOverview);
+"score" is the pollution level 0-100 (for "air" use exactly ${airScore}). "forecast" = predicted score for each of the next 5 years. "level" is one or two words. "points" = exactly 5 short bullet points for that pollution in ${p.name}: what it is, how bad it is here, who is hurt most, how it affects daily life, and one actionable tip for citizens. For water, land, noise, light and radiation, say in one bullet that it is an estimate. "verdict" is one simple sentence about the overall situation.`, validOverview, T0 + BUDGET);
       ok = !!ai;
       if (!ai) ai = fallbackOverview(live);
       ai = finalize(ai, live, p); // real air/temperature numbers win, estimates get checked
