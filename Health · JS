@@ -1,0 +1,21 @@
+// /api/health -> checks the server setup without revealing any secret.
+// Open  your-site/api/health  in the browser to see if GEMINI_API_KEY is set and working.
+module.exports = async (req, res) => {
+  const key = process.env.GEMINI_API_KEY;
+  const out = { success: true, geminiKeySet: !!key, model: process.env.GEMINI_MODEL || 'gemini-3.8-flash (default)', geminiReachable: null, note: '' };
+  if (!key) {
+    out.success = false;
+    out.note = 'GEMINI_API_KEY is missing. Add it in Vercel > Project > Settings > Environment Variables, then redeploy.';
+    return res.status(500).json(out);
+  }
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=1&key=${key}`, { signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    out.geminiReachable = r.ok;
+    if (r.ok) out.note = 'Key is set and Gemini accepted it.';
+    else { out.success = false; out.note = (d.error && d.error.message) || 'Gemini rejected the key.'; }
+  } catch (e) {
+    out.success = false; out.geminiReachable = false; out.note = 'Could not reach Gemini: ' + e.message;
+  }
+  res.status(out.success ? 200 : 500).json(out);
+};
