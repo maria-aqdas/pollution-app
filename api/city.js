@@ -196,23 +196,33 @@ GROUNDING RULES
 module.exports = async (req, res) => {
   try {
     const T0 = Date.now();
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ success: false, code: 'NO_API_KEY', error: 'Server setup problem: GEMINI_API_KEY is not set in Vercel Environment Variables. Add it and redeploy.' });
     const city = (req.query.city || '').trim();
     const type = (req.query.type || '').trim();
-    if (!city) return res.status(400).json({ error: 'City required' });
-    if (city.length > 60 || !/^[\p{L}\p{N}\s.,'’()-]+$/u.test(city)) return res.status(400).json({ error: 'Please enter a valid city name' });
+    if (!city) return res.status(400).json({ success: false, error: 'City required' });
+    if (city.length > 60 || !/^[\p{L}\p{N}\s.,'’()-]+$/u.test(city)) return res.status(400).json({ success: false, error: 'Please enter a valid city name' });
 
-    const g = await (await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`, { signal: AbortSignal.timeout(8000) }
-    )).json();
+    let g;
+    try {
+      g = await (await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`, { signal: AbortSignal.timeout(8000) }
+      )).json();
+    } catch (e) {
+      return res.status(502).json({ success: false, error: 'Could not reach the location service. Please try again in a moment.' });
+    }
     const p = g.results && g.results[0];
-    if (!p) return res.status(404).json({ error: 'City not found' });
+    if (!p) return res.status(404).json({ success: false, error: 'City not found' });
 
-    const [aq, wx, hs, ex] = await Promise.all([
+    let aq, wx, hs, ex;
+    try { [aq, wx, hs, ex] = await Promise.all([
       jf(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide`),
       jf(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m`),
       jf(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.latitude}&longitude=${p.longitude}&hourly=us_aqi&past_days=7&forecast_days=2&timezone=auto`).catch(() => ({})),
       jf(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=apparent_temperature,uv_index`).catch(() => ({}))
-    ]);
+    ]); } catch (e) {
+      return res.status(502).json({ success: false, error: 'Could not load air and weather data right now. Please try again in a moment.' });
+    }
+    if (!aq || !aq.current) return res.status(502).json({ success: false, error: 'Air quality data is not available for this city right now.' });
     const live = {
       aqi: aq.current && aq.current.us_aqi,
       pm25: aq.current && aq.current.pm2_5,
@@ -261,8 +271,8 @@ Return ONLY JSON: {"causes":${list('5 or more')},"harm":${list('5 or more')},"ou
     }
 
     res.setHeader('Cache-Control', ok ? 's-maxage=3600, stale-while-revalidate=86400' : 'no-store');
-    res.status(200).json({ city: p.name, country: p.country, live, history, best, worst, ai, degraded: !ok });
+    res.status(200).json({ success: true, city: p.name, country: p.country, live, history, best, worst, ai, degraded: !ok });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ success: false, error: e.message });
   }
 };
