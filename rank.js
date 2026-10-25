@@ -16,8 +16,8 @@ module.exports = async (req, res) => {
       pm25: arr[i] && arr[i].current ? arr[i].current.pm2_5 : null
     })).filter(x => x.aqi != null).sort((a, b) => b.aqi - a.aqi);
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
-    res.status(200).json({ list, updated: new Date().toISOString() });
+    res.status(200).json({ success: true, list, updated: new Date().toISOString() });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ success: false, error: 'Could not load the ranking right now.' });
   }
 };
